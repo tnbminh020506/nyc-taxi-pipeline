@@ -1,0 +1,14 @@
+# Phụ trách — Nhóm trưởng phối hợp Chính, Mạnh và Bảo | Hợp đồng cấu hình demo.
+#
+# Đầu vào
+# - Yellow Taxi Parquet và Zone Lookup đã chọn, từ URL hoặc file cục bộ.
+# - Ánh xạ cột đã kiểm tra, gồm tpep_pickup_datetime và PULocationID nếu đúng file mẫu.
+# - Hai kỳ history/replay không giao nhau và danh sách cửa sổ đã xác nhận độ phủ.
+# - Đường dẫn dùng chung của raw, manifest, kết quả batch và thư mục checkpoint.
+# - Kafka bootstrap servers, topic taxi-events, replay_id và tốc độ phát.
+# - Cấu hình Spark gồm nhịp trigger và cửa sổ 15 phút. Múi giờ nghiệp vụ America/New_York.
+# - Tham chiếu biến môi trường chứa chuỗi kết nối PostgreSQL.
+#
+# Đầu ra
+# - Một bộ thông số thống nhất cho ingestion, Spark và kho. Các mốc trao đổi có múi giờ.
+# - Mỗi phiên có checkpoint riêng và các vị trí bàn giao mà tiến trình nhận đọc được.

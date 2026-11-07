@@ -1,0 +1,16 @@
+-- Phụ trách — Bảo | MVP-03 | Khởi tạo PostgreSQL.
+--
+-- Đầu vào
+-- - Cơ sở dữ liệu demo và ba hợp đồng nạp trong database/load/.
+--
+-- Đầu ra
+-- - taxi_zones có một dòng mỗi pickup_zone_id, gồm zone_name và borough từ lookup.
+-- - historical_baseline có khóa (pickup_zone_id, iso_weekday, slot_15m) và cột
+--   baseline_trip_count, reference_windows, history_start, history_end.
+-- - replay_pickup_counts có khóa (replay_id, pickup_zone_id, window_start) và cột
+--   window_end, trip_count.
+--
+-- Yêu cầu
+-- - Chỉ dùng một kỳ tham chiếu đang hoạt động. Lưu các mốc thời gian dưới dạng timestamptz.
+-- - Dùng kiểu số phù hợp cho trung bình có phần thập phân và cho số đếm nguyên.
+-- - Cho phép các bảng số liệu giữ mã vùng chưa có tên trong taxi_zones.

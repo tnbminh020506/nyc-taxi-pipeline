@@ -1,0 +1,13 @@
+-- Phụ trách — Bảo | MVP-03 | Nạp Taxi Zone Lookup.
+--
+-- Đầu vào
+-- - CSV lookup do Chính bàn giao, cùng tên cột thực tế và đường dẫn đọc được.
+-- - Bảng taxi_zones từ database/schema.sql.
+--
+-- Đầu ra
+-- - Một dòng cho mỗi pickup_zone_id, kèm zone_name và borough.
+-- - Báo số dòng đã nạp và số dòng lỗi.
+--
+-- Yêu cầu
+-- - Kiểm tra ánh xạ LocationID, Zone, Borough với file mẫu. Cập nhật theo pickup_zone_id.
+-- - Nạp lại cùng lookup giữ nguyên số dòng và nội dung.

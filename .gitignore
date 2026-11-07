@@ -1,0 +1,13 @@
+# Đầu vào
+# Môi trường Python, thông tin kết nối và dữ liệu do lượt chạy cục bộ tạo ra.
+#
+# Đầu ra
+# Git bỏ qua dữ liệu thô và trạng thái chạy. Có thể theo dõi fixture đã chọn.
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+/data/raw/
+/data/processed/
+/checkpoints/
+/output/

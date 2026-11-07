@@ -1,0 +1,11 @@
+# Phụ trách — Nhóm trưởng phối hợp nhóm | Môi trường demo cục bộ.
+#
+# Đầu vào
+# - Địa chỉ/cổng Kafka và PostgreSQL đã thống nhất, biến môi trường kết nối kho và vị trí volume.
+#
+# Đầu ra
+# - Kafka truy cập được từ replay và Spark, có topic taxi-events cho phiên demo.
+# - PostgreSQL truy cập được từ Spark và bên chạy SQL, có chỗ lưu dữ liệu qua lần khởi động lại.
+#
+# Yêu cầu
+# - Ghi rõ endpoint nhìn từ tiến trình chạy trên máy và từ container nếu nhóm dùng cả hai.

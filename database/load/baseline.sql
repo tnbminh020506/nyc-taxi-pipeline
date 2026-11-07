@@ -1,0 +1,14 @@
+-- Phụ trách — Bảo | MVP-03 | Nạp một kỳ mức lịch sử.
+--
+-- Đầu vào
+-- - Đầu ra đầy đủ của Spark Batch gồm pickup_zone_id, iso_weekday, slot_15m,
+--   baseline_trip_count, reference_windows, history_start và history_end.
+--
+-- Đầu ra
+-- - Bảng historical_baseline có một dòng cho mỗi vùng, thứ và khung giờ của kỳ đang dùng.
+-- - Báo số dòng đã nạp và số dòng lỗi.
+--
+-- Yêu cầu
+-- - Kiểm tra đầu ra cùng kỳ và duy nhất theo (pickup_zone_id, iso_weekday, slot_15m).
+-- - Thay trọn bộ mức lịch sử trong một giao dịch sau khi kiểm tra thành công.
+-- - Nạp lại cùng kết quả giữ nguyên số dòng và số liệu.
