@@ -1,0 +1,44 @@
+# Bộ mẫu cục bộ; không gọi API và không chứng minh độ phủ dữ liệu API thật.
+workspace_root: ..
+source_timezone: America/New_York
+api:
+  version: 3
+  dataset_id: irx2-vgm4
+  endpoint: https://data.cityofnewyork.us/api/v3/views/irx2-vgm4/query.json
+  app_token_env: SOCRATA_APP_TOKEN
+  page_size: 1000
+  max_pages: 100
+  timeout_seconds: 30
+datasets:
+  history:
+    range_start: '2025-01-06T08:00:00-05:00'
+    range_end: '2025-01-13T08:15:00-05:00'
+    fixture_pages:
+      - data/fixtures/history-page-1.json
+      - data/fixtures/history-page-2.json
+  replay:
+    range_start: '2025-01-20T08:00:00-05:00'
+    range_end: '2025-01-20T08:30:00-05:00'
+    fixture_pages:
+      - data/fixtures/replay-page-1.json
+zone_lookup:
+  source_id: taxi-zone-lookup-fixture
+  source: data/fixtures/taxi_zone_lookup.csv
+paths:
+  raw: data/raw/fixture
+  parquet: data/processed/fixture
+  manifest: data/fixture-manifest.json
+kafka:
+  bootstrap_servers: localhost:9092
+  topic: taxi-events
+  partitions: 1
+replay:
+  replay_id: taxi-fixture-001
+  events_per_second: 0
+# Chỉ hai cửa sổ này được xác nhận độ phủ bởi bộ mẫu.
+# Mạnh dùng danh sách này để không coi cả tuần giữa hai ngày là đã có độ phủ.
+confirmed_history_windows:
+  - window_start: '2025-01-06T08:00:00-05:00'
+    window_end: '2025-01-06T08:15:00-05:00'
+  - window_start: '2025-01-13T08:00:00-05:00'
+    window_end: '2025-01-13T08:15:00-05:00'

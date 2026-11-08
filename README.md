@@ -10,6 +10,10 @@ MVP trả lời câu hỏi **Khu vực nào có nhiều chuyến đón khách h�
 
 Đây là workspace giao việc. Các tệp Python, SQL và YAML chứa chú thích về người phụ trách, đầu vào, đầu ra và yêu cầu xử lý.
 
+Nhánh `demo/ingestion` triển khai phần Chính (1.1–1.4): API → JSON → Parquet/manifest và replay → Kafka.
+Xem [cách cài, chạy bộ mẫu, cấu hình API/Kafka và hợp đồng bàn giao](docs/ingestion.md).
+Phần Spark và PostgreSQL vẫn theo phân công bên dưới, chờ tích hợp với Mạnh và Bảo.
+
 Xem sơ đồ và yêu cầu đầu vào, đầu ra của từng bước trong [hướng dẫn triển khai pipeline taxi](docs/guide/giao-viec-demo-taxi.md).
 
 ## Mục tiêu từng giai đoạn

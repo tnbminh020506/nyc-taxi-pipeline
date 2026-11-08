@@ -8,3 +8,34 @@
 #
 # Yêu cầu
 # - Nối ingestion/ingest.py với ingestion/manifest.py. Tóm tắt kết quả theo file cho nhóm.
+
+import argparse
+import json
+import logging
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from nyc_taxi_pipeline.ingestion.common import load_config
+from nyc_taxi_pipeline.ingestion.ingest import run_ingestion
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Fetch taxi API pages, build Parquet and publish a manifest")
+    parser.add_argument("--config", default="configs/demo.example.yaml")
+    parser.add_argument("--role", choices=("all", "history", "replay", "zone_lookup"), default="all")
+    args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    try:
+        roles = ("history", "replay", "zone_lookup") if args.role == "all" else (args.role,)
+        results = run_ingestion(load_config(args.config), roles)
+        print(json.dumps(results, ensure_ascii=False, indent=2))
+        return 0 if all(result["status"] == "ready" for result in results) else 1
+    except Exception as error:
+        logging.error("Ingestion failed: %s", error)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

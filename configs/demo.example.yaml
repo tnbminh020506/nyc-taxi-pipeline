@@ -16,3 +16,36 @@
 # Đầu ra
 # - Một bộ thông số thống nhất cho ingestion, Spark và kho. Các mốc trao đổi có múi giờ.
 # - Mỗi phiên có checkpoint riêng và các vị trí bàn giao mà tiến trình nhận đọc được.
+
+# Khoảng thời gian minh họa, cần nhóm trưởng xác nhận trước lượt demo chính thức.
+workspace_root: ..
+source_timezone: America/New_York
+api:
+  version: 3
+  dataset_id: irx2-vgm4
+  endpoint: https://data.cityofnewyork.us/api/v3/views/irx2-vgm4/query.json
+  app_token_env: SOCRATA_APP_TOKEN
+  page_size: 1000
+  max_pages: 100
+  timeout_seconds: 30
+datasets:
+  history:
+    range_start: '2025-01-06T08:00:00-05:00'
+    range_end: '2025-01-13T08:30:00-05:00'
+  replay:
+    range_start: '2025-01-20T08:00:00-05:00'
+    range_end: '2025-01-20T08:30:00-05:00'
+zone_lookup:
+  source_id: taxi-zone-lookup
+  source: https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
+paths:
+  raw: data/raw
+  parquet: data/processed
+  manifest: data/manifest.json
+kafka:
+  bootstrap_servers: localhost:9092
+  topic: taxi-events
+  partitions: 1
+replay:
+  replay_id: taxi-demo-001
+  events_per_second: 10  # 0 = không giới hạn tốc độ

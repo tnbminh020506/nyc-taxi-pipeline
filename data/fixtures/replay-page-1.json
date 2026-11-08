@@ -1,0 +1,6 @@
+[
+  {"source_record_id": "r-1", "tpep_pickup_datetime": "2025-01-20T08:01:00.000", "pulocationid": "161"},
+  {"source_record_id": "r-2", "tpep_pickup_datetime": "2025-01-20T08:05:00.000", "pulocationid": "161"},
+  {"source_record_id": "r-3", "tpep_pickup_datetime": "2025-01-20T08:14:00.000", "pulocationid": "161"},
+  {"source_record_id": "r-4", "tpep_pickup_datetime": "2025-01-20T08:15:00.000", "pulocationid": "161"}
+]
