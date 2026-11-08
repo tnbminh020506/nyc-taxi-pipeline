@@ -1,4 +1,4 @@
-# Phụ trách — Mạnh | MVP-02 | Đếm chuyến bằng Spark Structured Streaming.
+# Bước 2.3 | Mạnh | Đếm chuyến bằng Spark Structured Streaming.
 #
 # Đầu vào
 # - JSON từ Kafka taxi-events, replay_id cần xử lý, checkpoint riêng của phiên và nhịp trigger.

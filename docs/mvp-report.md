@@ -4,15 +4,15 @@
 Đầu ra
 Báo cáo bàn giao theo thành viên và trạng thái tích hợp của cả nhóm.
 -->
-# Báo cáo MVP
+# Bước 4.2 · Báo cáo MVP
 
 | Phần | Phụ trách | Trạng thái |
 | --- | --- | --- |
-| MVP-01 · Ingestion và replay | Chính | Chưa triển khai |
-| MVP-02 · Spark Batch và Structured Streaming | Mạnh | Chưa triển khai |
-| MVP-03 · PostgreSQL và SQL demo | Bảo | Chưa triển khai |
-| Chốt dữ liệu và ghép demo | Nhóm trưởng | Chưa nghiệm thu |
+| Bước 1.1–1.4 · Ingestion và replay | Chính | Đã có đặc tả |
+| Bước 2.1–2.3 · Spark Batch và Structured Streaming | Mạnh | Đã có đặc tả |
+| Bước 3.1–3.3 · PostgreSQL và SQL demo | Bảo | Đã có đặc tả |
+| Bước 4.1–4.2 · Chốt dữ liệu và ghép demo | Nhóm trưởng | Đã có kịch bản nghiệm thu |
 
 Mỗi thành viên ghi phần đã làm kèm đường dẫn tệp, luồng và hợp đồng bàn giao, lệnh chạy và kết quả thực tế, phần còn vướng và việc cần phối hợp.
 
-Nhóm trưởng ghi file TLC, Zone Lookup, kỳ lịch sử, kỳ replay, `replay_id` và kết quả SQL của cửa sổ demo. Ghi riêng kết quả chạy trên fixture và trên mẫu TLC thật.
+Nhóm trưởng ghi dataset và bộ lọc API, số trang và số dòng, Zone Lookup, kỳ lịch sử, kỳ replay, `replay_id` và kết quả SQL của cửa sổ demo. Ghi riêng kết quả trên bộ mẫu và kết quả lấy dữ liệu từ API thật.

@@ -1,4 +1,4 @@
-# Phụ trách — Nhóm trưởng phối hợp nhóm | Môi trường demo cục bộ.
+# Bước 1.4 và 4.1–4.2 | Nhóm trưởng phối hợp Chính (Kafka) và Bảo (PostgreSQL).
 #
 # Đầu vào
 # - Địa chỉ/cổng Kafka và PostgreSQL đã thống nhất, biến môi trường kết nối kho và vị trí volume.

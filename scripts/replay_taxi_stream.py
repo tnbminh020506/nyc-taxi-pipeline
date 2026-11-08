@@ -1,4 +1,4 @@
-# Phụ trách — Chính | Điểm chạy phát lại sự kiện.
+# Bước 1.3–1.4 | Chính | Điểm chạy phát lại sự kiện.
 #
 # Đầu vào
 # - Cấu hình demo, manifest, replay_id, địa chỉ Kafka, topic và tốc độ phát.

@@ -1,4 +1,4 @@
--- Phụ trách — Bảo | MVP-03 | Truy vấn câu hỏi demo trên PostgreSQL.
+-- Bước 3.3 | Bảo | Truy vấn câu hỏi demo trên PostgreSQL.
 --
 -- Đầu vào
 -- - replay_id và window_start có múi giờ của cửa sổ cần xem.

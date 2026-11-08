@@ -1,4 +1,4 @@
--- Phụ trách — Bảo | MVP-03 | Khởi tạo PostgreSQL.
+-- Bước 3.1 | Bảo | Khởi tạo PostgreSQL.
 --
 -- Đầu vào
 -- - Cơ sở dữ liệu demo và ba hợp đồng nạp trong database/load/.

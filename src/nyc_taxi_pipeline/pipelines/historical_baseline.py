@@ -1,7 +1,7 @@
-# Phụ trách — Mạnh | MVP-02 | Tính mức lịch sử bằng Spark Batch.
+# Bước 2.2 | Mạnh | Tính mức lịch sử bằng Spark Batch.
 #
 # Đầu vào
-# - Các dòng ready có dataset_role = history trong manifest và file Parquet tại raw_path.
+# - Các mục ready có dataset_role = history trong manifest và file Parquet dẫn xuất tại parquet_path.
 # - Danh sách cửa sổ có độ phủ đã xác nhận trong kỳ lịch sử và các vùng thuộc phạm vi so sánh.
 # - Quy tắc kiểm tra và phân khung trong processing/pickup.py.
 #

@@ -1,10 +1,14 @@
-# Phụ trách — Nhóm trưởng phối hợp Chính, Mạnh và Bảo | Hợp đồng cấu hình demo.
+# Bước 1.1 và 4.1–4.2 | Nhóm trưởng cùng Chính, Mạnh và Bảo | Cấu hình dùng chung.
 #
 # Đầu vào
-# - Yellow Taxi Parquet và Zone Lookup đã chọn, từ URL hoặc file cục bộ.
-# - Ánh xạ cột đã kiểm tra, gồm tpep_pickup_datetime và PULocationID nếu đúng file mẫu.
+# - NYC Open Data API, dataset Yellow Taxi 2025 đề xuất irx2-vgm4.
+# - Endpoint SODA v3 dự kiến https://data.cityofnewyork.us/api/v3/views/irx2-vgm4/query.json.
+# - Biến môi trường chứa app token cho SODA v3, kích thước trang và giới hạn lượt lấy.
+# - Trường API tpep_pickup_datetime và pulocationid, cùng ánh xạ sang schema Parquet đã chốt.
+# - URL hoặc đường dẫn CSV Taxi Zone Lookup. Đây là nguồn tra cứu riêng.
 # - Hai kỳ history/replay không giao nhau và danh sách cửa sổ đã xác nhận độ phủ.
-# - Đường dẫn dùng chung của raw, manifest, kết quả batch và thư mục checkpoint.
+# - Đường dẫn dùng chung cho JSON gốc, Parquet tạo từ API, manifest, kết quả batch và checkpoint.
+# - Định dạng kết quả batch và cách kết nối phần ghi stream do Mạnh và Bảo thống nhất.
 # - Kafka bootstrap servers, topic taxi-events, replay_id và tốc độ phát.
 # - Cấu hình Spark gồm nhịp trigger và cửa sổ 15 phút. Múi giờ nghiệp vụ America/New_York.
 # - Tham chiếu biến môi trường chứa chuỗi kết nối PostgreSQL.

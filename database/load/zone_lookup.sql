@@ -1,7 +1,8 @@
--- Phụ trách — Bảo | MVP-03 | Nạp Taxi Zone Lookup.
+-- Bước 3.2 | Bảo | Nạp Taxi Zone Lookup.
 --
 -- Đầu vào
--- - CSV lookup do Chính bàn giao, cùng tên cột thực tế và đường dẫn đọc được.
+-- - CSV lookup do Chính bàn giao qua mục zone_lookup có trạng thái ready ở bước 1.2.
+-- - Tên cột thực tế và đường dẫn raw_path mà tiến trình nạp đọc được.
 -- - Bảng taxi_zones từ database/schema.sql.
 --
 -- Đầu ra

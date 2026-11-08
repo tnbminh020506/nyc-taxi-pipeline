@@ -1,10 +1,10 @@
-# Phụ trách — Chính | Điểm chạy nhập dữ liệu.
+# Bước 1.1–1.2 | Chính | Điểm chạy nhập dữ liệu.
 #
 # Đầu vào
-# - Đường dẫn cấu hình demo với nguồn TLC, phạm vi từng tập và đường dẫn raw/manifest.
+# - Cấu hình NYC Open Data API, nguồn CSV lookup, hai kỳ dữ liệu và đường dẫn raw/Parquet/manifest.
 #
 # Đầu ra
-# - Parquet và Zone Lookup nguyên bản, manifest công bố file đã lưu và log số file/lỗi.
+# - Phản hồi JSON và CSV lookup nguyên bản, Parquet dẫn xuất, manifest và log số trang, số dòng, lỗi.
 #
 # Yêu cầu
 # - Nối ingestion/ingest.py với ingestion/manifest.py. Tóm tắt kết quả theo file cho nhóm.

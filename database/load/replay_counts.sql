@@ -1,4 +1,4 @@
--- Phụ trách — Bảo phối hợp Mạnh | MVP-03 | Nạp số đếm lũy kế của stream.
+-- Bước 3.2 | Bảo phối hợp Mạnh | Nạp số đếm lũy kế của stream.
 --
 -- Đầu vào
 -- - Các dòng từ một lần cập nhật của Spark gồm replay_id, pickup_zone_id,
@@ -8,6 +8,7 @@
 -- - Bảng replay_pickup_counts có một dòng mỗi vùng/cửa sổ của phiên.
 --
 -- Yêu cầu
+-- - Bảo bàn giao cơ chế ghi và cách truyền dữ liệu để Mạnh nối từ run_stream.py.
 -- - Cập nhật theo (replay_id, pickup_zone_id, window_start), gán trip_count bằng tổng mới.
 -- - Ghi theo giao dịch và thống nhất một luồng ghi tuần tự cho mỗi replay_id.
 -- - Ghi lại cùng lần cập nhật giữ nguyên số dòng và số đếm.

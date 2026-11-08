@@ -1,15 +1,16 @@
-# Phụ trách — Chính | MVP-01 | Nhập dữ liệu TLC vào raw storage.
+# Bước 1.1–1.2 | Chính | Gọi NYC Open Data API, lưu phản hồi và tạo Parquet.
 #
 # Đầu vào
-# - Danh sách URL hoặc đường dẫn cục bộ của Yellow Taxi Parquet và Taxi Zone Lookup.
-# - Đường dẫn lưu thô mà Spark và bên nạp kho đều đọc được.
-# - Vai trò và khoảng chọn của từng file chuyến đi theo cấu hình demo.
+# - Endpoint SODA, mã dataset, app token từ biến môi trường khi dùng SODA v3 và kích thước trang.
+# - Hai kỳ history/replay theo tpep_pickup_datetime và các trường API cần lấy, gồm pulocationid.
+# - CSV Taxi Zone Lookup và các đường dẫn lưu phản hồi gốc, Parquet và manifest.
 #
 # Đầu ra
-# - Bản sao nguyên bản của Parquet và Zone Lookup tại raw storage.
-# - Kết quả lưu theo file cho manifest.py, gồm nguồn, đường dẫn đích, trạng thái và lỗi nếu có.
-# - Log số file lưu thành công và số file lỗi.
+# - Các trang JSON gốc, CSV lookup nguyên bản và Parquet dẫn xuất riêng cho history/replay.
+# - Metadata bàn giao cho manifest.py gồm mã dataset, bộ lọc, đường dẫn, trạng thái và lỗi nếu có.
+# - Log số trang, số dòng và tình trạng hoàn tất theo kỳ.
 #
 # Yêu cầu
-# - Chỉ báo lưu thành công khi file đích hoàn chỉnh. Chạy lại cùng đầu vào giữ đường dẫn ổn định.
-# - Bàn giao đường dẫn Spark thực sự đọc được và tên cột thực tế của Zone Lookup.
+# - Lọc theo [range_start, range_end) và phân trang theo thứ tự ổn định. Ghi rõ khi dừng do lỗi hoặc giới hạn.
+# - Xác nhận ánh xạ từ trường API sang Parquet. Chỉ báo ready khi đã lấy đủ phạm vi và ghi Parquet xong.
+# - Bàn giao cho Mạnh schema và parquet_path. Bàn giao cho Bảo raw_path và tên cột của lookup.

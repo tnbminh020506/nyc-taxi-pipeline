@@ -1,4 +1,4 @@
-# Phụ trách — Mạnh | MVP-02 | Quy tắc kiểm tra và phân khung dùng chung.
+# Bước 2.1 | Mạnh | Quy tắc kiểm tra và phân khung dùng chung.
 #
 # Đầu vào
 # - Thời điểm đón khách và mã vùng từ Parquet hoặc JSON Kafka, kèm quy ước thời gian nguồn.
