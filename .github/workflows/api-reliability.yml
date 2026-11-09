@@ -1,0 +1,37 @@
+name: NYC API reliability
+
+on:
+  push:
+    branches: [demo/ingestion]
+    paths:
+      - '.github/workflows/api-reliability.yml'
+      - 'scripts/probe_api_reliability.py'
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: 'Probe rounds (8 serial v2 requests per round, no automatic retries)'
+        default: '5'
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: python -m pip install -r requirements-ingestion.txt
+      - run: python scripts/probe_api_reliability.py --rounds "$ROUNDS"
+        env:
+          ROUNDS: ${{ inputs.rounds || '5' }}
+          SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-reliability-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/api-reliability/
+          retention-days: 14
