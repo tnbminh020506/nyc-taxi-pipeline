@@ -56,3 +56,34 @@ trả HTML 403, khác với phản hồi xác thực JSON ở runner.
 
 Kết quả sau sửa sẽ được ghi từ toàn bộ các batch, bao gồm cả lượt thất bại,
 thời gian và số lần retry; không chọn riêng các lượt xanh để báo cáo.
+
+## Đợt 1: chưa đạt tiêu chí 20/20
+
+[Đủ 20 lượt](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42630619973),
+commit `325e2a0`, cấu hình 9 retry, backoff tối đa 12 giây, chưa có ngân sách retry
+toàn lời gọi. Kết quả: **19/20 lượt đạt**, 108/109 lời gọi API đạt sau retry;
+60/109 thành công ngay (55,05%). Ghi nhận 93 phản hồi 503 và 7 phản hồi 500 trong
+các lần thử. Lookup 20/20 được tách riêng, không cộng vào tỉ lệ taxi API.
+
+Lượt 14 tải được dữ liệu nhưng COUNT(*) history thất bại sau 10 lần thử, khoảng
+107 giây cho lời gọi đó. Hai lượt 15 phút kiểm tra nhiều trang đều đạt, lần lượt
+1.575 và 1.605 dòng tổng hai kỳ, mất 202,504 và 265,280 giây.
+Tổng số dòng đã đối chiếu COUNT(*) ở các lượt: 4.842 (bao gồm dữ liệu lặp lại khi đo).
+Xem [JSON đầy đủ](evidence/api-campaign-1-2026-11-09.json).
+
+## Kiểm tra giả thuyết tái dùng kết nối
+
+[24 request, không retry](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42635690218):
+keep-alive 8/12 đạt, Connection: close 8/12 đạt. Mẫu này không chứng minh đóng mọi
+kết nối cải thiện tỉ lệ thành công; không bật mặc định chế độ đó.
+
+## Đợt 2: sửa tầng phục hồi HTTP, giữ nguyên tiêu chí
+
+- Một tầng retry ở ngoài bước đọc trọn response body, thay cho retry ẩn bên trong
+  adapter. Có test thật bằng HTTP server ngắt body giữa chừng rồi phục hồi.
+- Sau lỗi tạm thời, đóng pool để lần thử sau nối lại; vẫn giữ keep-alive khi thành công.
+  Đây là biện pháp khôi phục kết nối, không khẳng định đã sửa được backend NYC.
+- Tối đa 15 retry, ngân sách giữa các lần thử 120 giây, min delay 2 giây,
+  backoff tối đa 6 giây cộng jitter 0–1 giây. Không retry auth/TLS; tôn trọng Retry-After.
+- Đo lại 20 lượt mới, không cache; vẫn yêu cầu toàn bộ lượt, đối chiếu và thời gian
+  đạt như tiêu chí ban đầu. Đợt 1 thất bại được giữ nguyên trong lịch sử.

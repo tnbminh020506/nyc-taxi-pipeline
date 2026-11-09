@@ -1,0 +1,473 @@
+{
+  "status": "failed",
+  "expected_runs": 20,
+  "recorded_runs": 20,
+  "coverage_complete": true,
+  "successful_runs": 19,
+  "fresh_downloads_only": true,
+  "api_logical_calls": 109,
+  "api_first_attempt_successes": 60,
+  "api_first_attempt_success_rate": 0.5504587155963303,
+  "api_final_successes": 108,
+  "api_final_success_rate": 0.9908256880733946,
+  "api_observed_attempt_statuses": {
+    "200": 108,
+    "503": 93,
+    "500": 7
+  },
+  "lookup_logical_calls": 20,
+  "verified_parquet_rows": 4842,
+  "median_api_call_seconds": 12.153,
+  "p95_api_call_seconds": 35.251,
+  "median_run_seconds": 65.15299999999999,
+  "p95_run_seconds": 202.504,
+  "runs": [
+    {
+      "number": 1,
+      "status": "passed",
+      "seconds": 39.546,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 63,
+          "parquet_rows": 63,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:01:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 34,
+          "parquet_rows": 34,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:01:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 2,
+      "status": "passed",
+      "seconds": 94.075,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:01:00' AND tpep_pickup_datetime < '2025-01-06T08:02:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 27,
+          "parquet_rows": 27,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:01:00' AND tpep_pickup_datetime < '2025-01-20T08:02:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 3,
+      "status": "passed",
+      "seconds": 43.454,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:02:00' AND tpep_pickup_datetime < '2025-01-06T08:03:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 28,
+          "parquet_rows": 28,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:02:00' AND tpep_pickup_datetime < '2025-01-20T08:03:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 4,
+      "status": "passed",
+      "seconds": 49.336,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 68,
+          "parquet_rows": 68,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:03:00' AND tpep_pickup_datetime < '2025-01-06T08:04:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 26,
+          "parquet_rows": 26,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:03:00' AND tpep_pickup_datetime < '2025-01-20T08:04:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 5,
+      "status": "passed",
+      "seconds": 62.949,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 67,
+          "parquet_rows": 67,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:04:00' AND tpep_pickup_datetime < '2025-01-06T08:05:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 35,
+          "parquet_rows": 35,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:04:00' AND tpep_pickup_datetime < '2025-01-20T08:05:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 6,
+      "status": "passed",
+      "seconds": 95.32,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 63,
+          "parquet_rows": 63,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:01:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 34,
+          "parquet_rows": 34,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:01:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 7,
+      "status": "passed",
+      "seconds": 65.326,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:01:00' AND tpep_pickup_datetime < '2025-01-06T08:02:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 27,
+          "parquet_rows": 27,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:01:00' AND tpep_pickup_datetime < '2025-01-20T08:02:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 8,
+      "status": "passed",
+      "seconds": 64.98,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:02:00' AND tpep_pickup_datetime < '2025-01-06T08:03:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 28,
+          "parquet_rows": 28,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:02:00' AND tpep_pickup_datetime < '2025-01-20T08:03:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 9,
+      "status": "passed",
+      "seconds": 55.791,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 68,
+          "parquet_rows": 68,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:03:00' AND tpep_pickup_datetime < '2025-01-06T08:04:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 26,
+          "parquet_rows": 26,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:03:00' AND tpep_pickup_datetime < '2025-01-20T08:04:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 10,
+      "status": "passed",
+      "seconds": 57.79,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 67,
+          "parquet_rows": 67,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:04:00' AND tpep_pickup_datetime < '2025-01-06T08:05:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 35,
+          "parquet_rows": 35,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:04:00' AND tpep_pickup_datetime < '2025-01-20T08:05:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 11,
+      "status": "passed",
+      "seconds": 50.638,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 63,
+          "parquet_rows": 63,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:01:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 34,
+          "parquet_rows": 34,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:01:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 12,
+      "status": "passed",
+      "seconds": 75.997,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:01:00' AND tpep_pickup_datetime < '2025-01-06T08:02:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 27,
+          "parquet_rows": 27,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:01:00' AND tpep_pickup_datetime < '2025-01-20T08:02:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 13,
+      "status": "passed",
+      "seconds": 126.09,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:02:00' AND tpep_pickup_datetime < '2025-01-06T08:03:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 28,
+          "parquet_rows": 28,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:02:00' AND tpep_pickup_datetime < '2025-01-20T08:03:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 14,
+      "status": "failed",
+      "seconds": 137.988,
+      "duration_minutes": 1,
+      "checks": [],
+      "error": "503 Server Error: Service Unavailable for url: https://data.cityofnewyork.us/resource/irx2-vgm4.json?%24query=SELECT+count%28%2A%29+AS+total+WHERE+tpep_pickup_datetime+%3E%3D+%272025-01-06T08%3A03%3A00%27+AND+tpep_pickup_datetime+%3C+%272025-01-06T08%3A04%3A00%27+LIMIT+100+OFFSET+0"
+    },
+    {
+      "number": 15,
+      "status": "passed",
+      "seconds": 86.041,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 67,
+          "parquet_rows": 67,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:04:00' AND tpep_pickup_datetime < '2025-01-06T08:05:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 35,
+          "parquet_rows": 35,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:04:00' AND tpep_pickup_datetime < '2025-01-20T08:05:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 16,
+      "status": "passed",
+      "seconds": 42.017,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 63,
+          "parquet_rows": 63,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:01:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 34,
+          "parquet_rows": 34,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:01:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 17,
+      "status": "passed",
+      "seconds": 71.973,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:01:00' AND tpep_pickup_datetime < '2025-01-06T08:02:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 27,
+          "parquet_rows": 27,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:01:00' AND tpep_pickup_datetime < '2025-01-20T08:02:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 18,
+      "status": "passed",
+      "seconds": 31.167,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:02:00' AND tpep_pickup_datetime < '2025-01-06T08:03:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 28,
+          "parquet_rows": 28,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:02:00' AND tpep_pickup_datetime < '2025-01-20T08:03:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 19,
+      "status": "passed",
+      "seconds": 202.504,
+      "duration_minutes": 15,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 1059,
+          "parquet_rows": 1059,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:03:00' AND tpep_pickup_datetime < '2025-01-06T08:18:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 516,
+          "parquet_rows": 516,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:03:00' AND tpep_pickup_datetime < '2025-01-20T08:18:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    },
+    {
+      "number": 20,
+      "status": "passed",
+      "seconds": 265.28,
+      "duration_minutes": 15,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 1074,
+          "parquet_rows": 1074,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:04:00' AND tpep_pickup_datetime < '2025-01-06T08:19:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 531,
+          "parquet_rows": 531,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:04:00' AND tpep_pickup_datetime < '2025-01-20T08:19:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null
+    }
+  ],
+  "source_run": "https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42630619973",
+  "tested_commit": "325e2a0c5646a6f7e012ff5b2fd25384f477d384"
+}

@@ -24,14 +24,19 @@ def server():
     state = {"requests": [], "responses": []}
 
     class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            state["requests"].append({"body": body, "headers": dict(self.headers), "path": self.path})
+            state["requests"].append({"body": body, "headers": dict(self.headers), "path": self.path,
+                                      "client_port": self.client_address[1]})
             status, payload = state["responses"].pop(0)
             content = json.dumps(payload).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(content)))
+            if isinstance(payload, dict) and payload.get("_retry_after"):
+                self.send_header("Retry-After", payload["_retry_after"])
             self.end_headers()
             self.wfile.write(content)
 
@@ -39,7 +44,16 @@ def server():
             state["requests"].append({"path": self.path, "headers": dict(self.headers)})
             status, payload = state["responses"].pop(0)
             content = json.dumps(payload).encode()
+            if status == -1:
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(content) + 100))
+                self.end_headers()
+                self.wfile.write(content)
+                self.wfile.flush()
+                self.close_connection = True
+                return
             self.send_response(status)
+            self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
 
@@ -180,10 +194,15 @@ def test_resume_can_be_disabled_for_fresh_measurements(config, server, monkeypat
     assert ready["pages_downloaded"] == 2
 
 
-def test_retry_delay_survives_retry_state_updates():
-    from nyc_taxi_pipeline.ingestion.ingest import GentleRetry
-    retry = GentleRetry(total=2, min_delay=2, backoff_factor=0)
-    assert retry.increment(method="GET", url="http://example.test").get_backoff_time() == 2
+def test_first_retry_honors_minimum_delay(config, server, monkeypatch):
+    from nyc_taxi_pipeline.ingestion import ingest
+    use_api(config, server, monkeypatch)
+    config["api"].update(min_retry_delay_seconds=2, retry_backoff_seconds=0)
+    delays = []
+    monkeypatch.setattr(ingest.time, "sleep", delays.append)
+    server["responses"] = [(503, {"message": "unavailable"}), (200, [row()])]
+    assert run_ingestion(config, ("replay",))[0]["status"] == "ready"
+    assert delays == [2]
 
 
 def test_missing_page_invalidates_old_ready_entry(config, server, monkeypatch):
@@ -214,6 +233,30 @@ def test_service_errors_recover_with_configured_retries(config, server, monkeypa
     assert result["status"] == "ready" and len(server["requests"]) == 3
     assert metrics[0]["attempt_statuses"] == [503, 500, 200]
     assert metrics[0]["success"] and not metrics[0]["first_attempt_success"]
+    assert len({request["client_port"] for request in server["requests"]}) == 3
+
+
+def test_interrupted_response_body_is_retried(config, server, monkeypatch):
+    use_api(config, server, monkeypatch)
+    config["api"].update(version=2, retry_backoff_seconds=0)
+    metrics = []
+    config["api"]["_request_metrics"] = metrics
+    server["responses"] = [(-1, [row()]), (200, [row()])]
+    result, = run_ingestion(config, ("replay",))
+    assert result["status"] == "ready" and result["row_count"] == 1
+    assert len(server["requests"]) == 2
+    assert metrics[0]["attempts"] == 2 and metrics[0]["attempt_statuses"][-1] == 200
+
+
+def test_retry_after_larger_than_budget_fails_without_early_retry(config, server, monkeypatch):
+    use_api(config, server, monkeypatch)
+    config["api"].update(max_retries=15, request_budget_seconds=1)
+    metrics = []
+    config["api"]["_request_metrics"] = metrics
+    server["responses"] = [(429, {"_retry_after": "60"})]
+    result, = run_ingestion(config, ("replay",))
+    assert result["status"] == "failed" and len(server["requests"]) == 1
+    assert metrics[0]["exhausted_reason"] == "retry_delay_exceeds_budget"
 
 
 def test_missing_app_token_fails_without_http(config, server, monkeypatch):

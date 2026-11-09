@@ -86,8 +86,12 @@ def load_config(path):
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise ValueError(f"api.{name} must be a positive integer")
     retries = api.get("max_retries", 3)
-    if isinstance(retries, bool) or not isinstance(retries, int) or not 0 <= retries <= 10:
-        raise ValueError("api.max_retries must be an integer from 0 to 10")
+    if isinstance(retries, bool) or not isinstance(retries, int) or not 0 <= retries <= 20:
+        raise ValueError("api.max_retries must be an integer from 0 to 20")
+    budget = float(api.get("request_budget_seconds", 120))
+    if not 0 < budget <= 600:
+        raise ValueError("api.request_budget_seconds must be positive and at most 600")
+    api["request_budget_seconds"] = budget
     for name, default in (("retry_backoff_seconds", 0.5), ("retry_backoff_max_seconds", 20),
                           ("min_retry_delay_seconds", 0), ("retry_jitter_seconds", 0),
                           ("min_request_interval_seconds", 0)):

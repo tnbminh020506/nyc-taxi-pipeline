@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import copy
 import time
+from urllib.parse import urlsplit
 
 import pyarrow.parquet as pq
 
@@ -24,10 +25,20 @@ def run_live_smoke(config, report_path="output/api-smoke/report.json"):
     report = {"started_at": datetime.now(timezone.utc).isoformat(), "status": "failed",
               "dataset_id": config["api"]["dataset_id"], "api_version": config["api"].get("version", 3),
               "endpoint": config["api"]["endpoint"], "checks": [], "datasets": []}
+    report["retry_policy"] = {key: config["api"].get(key) for key in (
+        "max_retries", "request_budget_seconds", "retry_backoff_seconds", "retry_backoff_max_seconds",
+        "min_retry_delay_seconds", "retry_jitter_seconds", "min_request_interval_seconds", "connection_close")}
     try:
         for role in ("history", "replay"):
             if "fixture_pages" in config["datasets"][role]:
                 raise ValueError("Live smoke refuses fixture input")
+        endpoint = urlsplit(config["api"]["endpoint"])
+        dataset = config["api"]["dataset_id"]
+        expected_path = (f"/resource/{dataset}.json" if config["api"].get("version", 3) == 2
+                         else f"/api/v3/views/{dataset}/query.json")
+        if (endpoint.scheme != "https" or endpoint.hostname != "data.cityofnewyork.us"
+                or endpoint.path != expected_path or endpoint.query or endpoint.fragment or endpoint.username):
+            raise ValueError("Live acceptance requires the official NYC HTTPS endpoint for this dataset/version")
         if not config["zone_lookup"]["source"].startswith("https://"):
             raise ValueError("Live smoke requires an HTTPS lookup source")
         results = run_ingestion(config)

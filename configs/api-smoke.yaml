@@ -1,5 +1,5 @@
 # Kiểm tra API thật trên hai khoảng nhỏ; không dùng làm kỳ baseline của demo.
-# Chọn v2 công khai tường minh vì chưa có token. Default demo vẫn là v3.
+# Chọn v2 công khai tường minh; có thể chọn v3 bằng --api-version 3 khi đã có token.
 workspace_root: ..
 source_timezone: America/New_York
 api:
@@ -10,9 +10,10 @@ api:
   page_size: 100
   max_pages: 20
   timeout_seconds: 60
-  max_retries: 9
+  max_retries: 15
+  request_budget_seconds: 120
   retry_backoff_seconds: 2
-  retry_backoff_max_seconds: 12
+  retry_backoff_max_seconds: 6
   min_retry_delay_seconds: 2
   retry_jitter_seconds: 1
   min_request_interval_seconds: 1

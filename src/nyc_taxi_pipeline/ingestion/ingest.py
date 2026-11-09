@@ -21,17 +21,18 @@ import io
 import json
 import logging
 import os
+import random
 import re
 import time
 import uuid
 from datetime import timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import requests
 from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 from .common import atomic_write, aware_time, resolve_path, source_time, write_json
 from .manifest import entry_key, read_manifest, upsert_manifest
@@ -49,70 +50,110 @@ TRIP_SCHEMA = pa.schema([
 
 
 class MeasuredSession(requests.Session):
-    """Record logical calls and the retry history without logging credentials."""
+    """Bounded read-only API retries, including failures while reading the body."""
 
-    def __init__(self, metrics=None, min_interval=0):
+    def __init__(self, api):
         super().__init__()
-        self.metrics = metrics
-        self.min_interval = min_interval
+        self.api = api
+        self.metrics = api.get("_request_metrics")
+        self.min_interval = api.get("min_request_interval_seconds", 0)
         self.last_request_start = None
+        # Retries are implemented once, above the complete response-body read.
+        # No hidden adapter retry can multiply the configured attempt budget.
+        self.mount("https://", HTTPAdapter(max_retries=0))
+        self.mount("http://", HTTPAdapter(max_retries=0))
+        if api.get("connection_close", False):
+            self.headers["Connection"] = "close"
+
+    @staticmethod
+    def retry_after(response):
+        value = response.headers.get("Retry-After")
+        if value is None:
+            return None
+        try:
+            delay = float(value)
+            return max(0, delay) if 0 <= delay < float("inf") else None
+        except ValueError:
+            try:
+                return max(0, parsedate_to_datetime(value).timestamp() - time.time())
+            except (ValueError, TypeError, OverflowError):
+                return None
 
     def request(self, method, url, **kwargs):
         started = time.monotonic()
         if self.last_request_start is not None:
-            time.sleep(max(0, self.min_interval - (started - self.last_request_start)))
+            pause = max(0, self.min_interval - (started - self.last_request_start))
+            if pause:
+                time.sleep(pause)
         self.last_request_start = time.monotonic()
+        deadline = started + self.api.get("request_budget_seconds", 120)
         event = {"method": method, "kind": "lookup" if "cloudfront.net" in url else "api"}
+        statuses = []
+        response, error = None, None
+        max_retries = self.api.get("max_retries", 3)
+        configured_timeout = kwargs.pop("timeout", self.api.get("timeout_seconds", 30))
+        connect, read = configured_timeout if isinstance(configured_timeout, tuple) else (8, configured_timeout)
         try:
-            response = super().request(method, url, **kwargs)
-            history = getattr(getattr(response, "raw", None), "retries", None)
-            history = list(getattr(history, "history", ()))
-            statuses = [item.status if item.status is not None else "transport_error" for item in history]
-            statuses.append(response.status_code)
-            event.update(status=response.status_code, attempt_statuses=statuses, attempts=len(statuses),
-                         success=response.ok, first_attempt_success=response.ok and not history)
-            return response
-        except requests.RequestException as error:
-            event.update(status=None, success=False, first_attempt_success=False,
-                         error=type(error).__name__, attempt_statuses=None)
-            raise
+            for attempt in range(max_retries + 1):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    event["exhausted_reason"] = "request_budget"
+                    break
+                try:
+                    response = super().request(method, url, timeout=(min(connect, remaining), min(read, remaining)), **kwargs)
+                    # Reading content here also covers a caller that sets stream.
+                    response.content
+                    statuses.append(response.status_code)
+                    error = None
+                    retryable = response.status_code in (429, 500, 502, 503, 504)
+                    if not retryable:
+                        return response
+                except requests.RequestException as caught:
+                    response, error = None, caught
+                    statuses.append(type(caught).__name__)
+                    retryable = isinstance(caught, (requests.ConnectionError, requests.Timeout,
+                        requests.exceptions.ChunkedEncodingError, requests.exceptions.ContentDecodingError))
+                    if not retryable or isinstance(caught, requests.exceptions.SSLError):
+                        raise
+                if method.upper() not in ("GET", "POST") or attempt == max_retries:
+                    event["exhausted_reason"] = "attempt_limit"
+                    break
+                delay = min(self.api.get("retry_backoff_max_seconds", 20),
+                            self.api.get("retry_backoff_seconds", .5) * 2 ** attempt)
+                delay = max(self.api.get("min_retry_delay_seconds", 0), delay)
+                delay += random.uniform(0, self.api.get("retry_jitter_seconds", 0))
+                if response is not None:
+                    supplied = self.retry_after(response)
+                    if supplied is not None:
+                        delay = max(delay, supplied)
+                    response.close()
+                # Clear idle pooled connections after an error. The next attempt
+                # performs a fresh connection to the same authorized endpoint.
+                self.get_adapter(url).close()
+                if delay >= deadline - time.monotonic():
+                    event["exhausted_reason"] = "retry_delay_exceeds_budget"
+                    break
+                LOG.warning("HTTP retry method=%s attempt=%d status=%s wait=%.2fs", method,
+                            attempt + 1, statuses[-1], delay)
+                if delay:
+                    time.sleep(delay)
+            if response is not None:
+                return response
+            raise error or requests.Timeout("Request time budget exhausted")
         finally:
+            success = response is not None and response.ok
+            event.update(status=response.status_code if response is not None else None,
+                         attempt_statuses=statuses, attempts=len(statuses), success=success,
+                         first_attempt_success=success and len(statuses) == 1)
+            if error is not None:
+                event["error"] = type(error).__name__
             event["seconds"] = round(time.monotonic() - started, 3)
             if self.metrics is not None:
                 self.metrics.append(event)
 
 
-class GentleRetry(Retry):
-    """Unlike urllib3's default, a transient failure need not get an immediate retry."""
-
-    def __init__(self, *args, min_delay=0, **kwargs):
-        self.min_delay = min_delay
-        super().__init__(*args, **kwargs)
-
-    def new(self, **kwargs):
-        kwargs["min_delay"] = self.min_delay
-        return super().new(**kwargs)
-
-    def get_backoff_time(self):
-        return max(self.min_delay, super().get_backoff_time())
-
-
 def http_session(api=None):
-    api = api or {}
-    session = MeasuredSession(api.get("_request_metrics"), api.get("min_request_interval_seconds", 0))
-    if api.get("connection_close", False):
-        session.headers["Connection"] = "close"
-    retries = GentleRetry(total=api.get("max_retries", 3),
-                    min_delay=api.get("min_retry_delay_seconds", 0),
-                    backoff_factor=api.get("retry_backoff_seconds", 0.5),
-                    backoff_max=api.get("retry_backoff_max_seconds", 20),
-                    backoff_jitter=api.get("retry_jitter_seconds", 0),
-                    status_forcelist=(429, 500, 502, 503, 504),
-                    allowed_methods=frozenset(("GET", "POST")), respect_retry_after_header=True,
-                    raise_on_status=False)
-    session.mount("https://", HTTPAdapter(max_retries=retries))
-    session.mount("http://", HTTPAdapter(max_retries=retries))
-    return session
+    return MeasuredSession(api or {})
 
 
 def query_for_range(section, zone_name):

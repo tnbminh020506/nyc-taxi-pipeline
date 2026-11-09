@@ -36,35 +36,44 @@ Các phép tổng hợp và SQL do phần Mạnh/Bảo triển khai.
 
 ```powershell
 Copy-Item configs/demo.example.yaml configs/demo.local.yaml
-$env:SOCRATA_APP_TOKEN = 'token-cua-ban'
 .\.venv\Scripts\python.exe scripts/run_ingestion.py --config configs/demo.local.yaml
 # Có thể chạy một phần: --role history, --role replay hoặc --role zone_lookup
 ```
 
 Nhóm trưởng cần chốt hai khoảng không giao nhau trong `datasets` trước demo.
 Các ngày trong file example chỉ là ví dụ. Mọi mốc cấu hình phải có offset.
+File example hiện chọn 15 phút mỗi kỳ để chạy thử; cần nhiều cửa sổ lịch sử
+thì nhóm chốt và nhập thêm phạm vi tương ứng. Không mặc định tải cả tuần/năm.
 Mọi đường dẫn tương đối được tính từ `workspace_root` (mặc định là thư mục cha
 của thư mục cấu hình), không phụ thuộc thư mục terminal khi truyền config tuyệt đối.
 Token chỉ đọc từ biến môi trường, không lưu vào raw/manifest hoặc commit.
 
-Mặc định dùng SODA v3: POST tới endpoint `api/v3/views/irx2-vgm4/query.json`,
+Mặc định hiện dùng SODA v2 công khai tại `resource/irx2-vgm4.json`, chưa cần token.
+Để dùng SODA v3, đặt `api.version: 3`, cấu hình token qua biến môi trường và POST tới `api/v3/views/irx2-vgm4/query.json`,
 `X-App-Token`, `query`, `page.pageNumber` bắt đầu từ 1 và `page.pageSize`.
 Truy vấn lấy `:id AS source_record_id`, `tpep_pickup_datetime`, `pulocationid`,
 lọc `[range_start, range_end)`, sắp theo thời điểm đón và `:id` để thứ tự ổn định.
 Các response được lưu nguyên bytes thành `page-000001.json`, v.v.;
 `request.json` lưu query, endpoint, phiên bản API, phạm vi và số dòng từng trang.
 
-Nếu nhóm chủ động dùng SODA v2, đặt `api.version: 2` và endpoint
+Với SODA v2, `api.version: 2` và endpoint
 `https://data.cityofnewyork.us/resource/irx2-vgm4.json`; chương trình dùng GET
 `$query` với LIMIT/OFFSET. Không có chuyển nguồn hay fallback âm thầm.
 
 Một trang ngắn hơn `page_size` (kể cả trang rỗng) mới xác nhận hết phạm vi.
 Nếu đúng `max_pages` trang đầy, trạng thái là `incomplete`, tăng giới hạn và chạy
 lại. Lỗi HTTP/schema/ghi file chuyển thành `failed`; lệnh trả exit code 1.
-HTTP 429/500/502/503/504 được retry tối đa 3 lần, có backoff và Retry-After.
-Có thể chỉnh `api.max_retries` (0–10), `retry_backoff_seconds` và
-`retry_backoff_max_seconds`. Cấu hình nghiệm thu thật dùng 5 lần retry với
-backoff 2 giây, giới hạn mỗi khoảng đợi 20 giây để giảm gọi dồn khi nguồn lỗi 500/503.
+HTTP 429/500/502/503/504 được retry theo `api.max_retries`, có backoff và Retry-After.
+Có thể chỉnh `api.max_retries` (0–20), `request_budget_seconds`, `retry_backoff_seconds`,
+`retry_backoff_max_seconds`, `min_retry_delay_seconds`, `retry_jitter_seconds`
+và `min_request_interval_seconds`. Cấu hình demo/nghiệm thu hiện dùng tối đa
+15 lần retry, ngân sách retry 120 giây, chờ tối thiểu 2 giây sau lỗi, backoff tối
+đa 6 giây cộng jitter tối đa 1 giây; request logic mới cách nhau tối thiểu 1 giây.
+Timeout connect/read của lần thử sau được giảm theo thời gian còn lại; ngân sách
+được kiểm tra giữa các lần thử, không phải cam kết thời gian thực cho DNS/socket.
+401/403 và lỗi chứng chỉ TLS không retry. Retry-After vượt ngân sách thì dừng,
+không gửi lại sớm hơn yêu cầu của nguồn. Sau lỗi tạm thời, pool kết nối được tạo
+lại; lỗi đứt body cũng được ghi nhận và thử lại, không chỉ lỗi trước response.
 Số trang, số dòng, số dòng lỗi và trạng thái được log theo kỳ.
 API phải giữ dataset ổn định trong một lần tải; thứ tự ổn định không tạo snapshot
 giao dịch nếu nhà cung cấp cập nhật dataset giữa các trang.
@@ -99,6 +108,16 @@ chỉ có một mục, lookup có một mục theo nguồn. Lần tải lại l�
 không để mục cũ tiếp tục được coi là dữ liệu mới. File từ lần cũ vẫn tồn tại cho
 tiến trình đang đọc; không tự xóa dữ liệu. Chạy **một tiến trình ingestion** ghi
 một manifest tại một thời điểm (chưa hỗ trợ nhiều writer đồng thời).
+
+Với mục chưa `ready`, chương trình có thể tiếp tục từ các trang JSON đã lưu,
+kiểm tra checksum từng trang và dựng lại Parquet để tránh nối trùng dòng.
+Query/endpoint/phiên bản/page size phải trùng lần trước; trang hỏng được tải lại.
+Tắt bằng `--no-resume` hoặc `api.resume: false`. Khi source đã cập nhật, nên tải
+mới với `--no-resume`; thứ tự ổn định và resume không tạo snapshot giao dịch.
+Lượt `ready` đã hoàn tất sẽ không được dùng như cache cho lần nhập mới.
+Sau khi có dữ liệu `ready`, có thể chạy batch/replay nhiều lần từ manifest và
+Parquet đã lưu mà không gọi lại API. Chỉ chạy lại `run_ingestion.py` khi thực sự
+muốn lấy lại nguồn; Spark và replay không cần tải NYC lại mỗi lần demo.
 
 Schema Parquet dùng chung:
 
@@ -193,7 +212,12 @@ gh workflow run live-api.yml --ref demo/ingestion -f api_version=2
 Workflow `Live NYC API acceptance` lưu artifact gồm JSON gốc, query, Parquet,
 manifest và báo cáo, kể cả khi kiểm tra thất bại. Artifact giữ 7 ngày. Đường dẫn
 trong manifest của runner là đường dẫn Linux; cần ánh xạ lại trước khi đọc trên
-máy khác. SODA v2 được chọn tường minh cho phép thử này; default demo vẫn là v3.
+máy khác. SODA v2 là lựa chọn mặc định hiện tại; v3 được chọn tường minh khi có token.
+
+Để đo nhiều lượt, dùng workflow **NYC API reliability**, chế độ `acceptance`.
+Workflow chạy 20 lượt mới theo bốn batch nối tiếp, hai lượt cuối kiểm tra nhiều
+trang trong 15 phút. Xem [phương pháp và kết quả](api-reliability.md).
+Đây là phép thử chủ động, không phải lịch chạy định kỳ.
 
 Để thử **SODA v3**, cần tài khoản Socrata và app token của chính người chạy:
 
