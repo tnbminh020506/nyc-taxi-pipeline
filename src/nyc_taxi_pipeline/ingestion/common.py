@@ -81,6 +81,14 @@ def load_config(path):
         value = api.get(name, default)
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise ValueError(f"api.{name} must be a positive integer")
+    retries = api.get("max_retries", 3)
+    if isinstance(retries, bool) or not isinstance(retries, int) or not 0 <= retries <= 10:
+        raise ValueError("api.max_retries must be an integer from 0 to 10")
+    for name, default in (("retry_backoff_seconds", 0.5), ("retry_backoff_max_seconds", 20)):
+        value = float(api.get(name, default))
+        if not math.isfinite(value) or not 0 <= value <= 120:
+            raise ValueError(f"api.{name} must be finite and between 0 and 120")
+        api[name] = value
     rate = float(config.get("replay", {}).get("events_per_second", 10))
     if not math.isfinite(rate) or rate < 0:
         raise ValueError("replay.events_per_second must be finite and nonnegative")

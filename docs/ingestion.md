@@ -62,6 +62,9 @@ Một trang ngắn hơn `page_size` (kể cả trang rỗng) mới xác nhận h
 Nếu đúng `max_pages` trang đầy, trạng thái là `incomplete`, tăng giới hạn và chạy
 lại. Lỗi HTTP/schema/ghi file chuyển thành `failed`; lệnh trả exit code 1.
 HTTP 429/500/502/503/504 được retry tối đa 3 lần, có backoff và Retry-After.
+Có thể chỉnh `api.max_retries` (0–10), `retry_backoff_seconds` và
+`retry_backoff_max_seconds`. Cấu hình nghiệm thu thật dùng 5 lần retry với
+backoff 2 giây, giới hạn mỗi khoảng đợi 20 giây để giảm gọi dồn khi nguồn lỗi 500/503.
 Số trang, số dòng, số dòng lỗi và trạng thái được log theo kỳ.
 API phải giữ dataset ổn định trong một lần tải; thứ tự ổn định không tạo snapshot
 giao dịch nếu nhà cung cấp cập nhật dataset giữa các trang.

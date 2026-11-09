@@ -47,9 +47,13 @@ TRIP_SCHEMA = pa.schema([
 ])
 
 
-def http_session():
+def http_session(api=None):
+    api = api or {}
     session = requests.Session()
-    retries = Retry(total=3, backoff_factor=0.5, status_forcelist=(429, 500, 502, 503, 504),
+    retries = Retry(total=api.get("max_retries", 3),
+                    backoff_factor=api.get("retry_backoff_seconds", 0.5),
+                    backoff_max=api.get("retry_backoff_max_seconds", 20),
+                    status_forcelist=(429, 500, 502, 503, 504),
                     allowed_methods=frozenset(("GET", "POST")), respect_retry_after_header=True)
     session.mount("https://", HTTPAdapter(max_retries=retries))
     session.mount("http://", HTTPAdapter(max_retries=retries))
@@ -262,6 +266,6 @@ def ingest_lookup(config, session):
 
 
 def run_ingestion(config, roles=("history", "replay", "zone_lookup")):
-    with http_session() as session:
+    with http_session(config.get("api")) as session:
         return [ingest_lookup(config, session) if role == "zone_lookup" else ingest_trips(config, role, session)
                 for role in roles]

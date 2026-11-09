@@ -25,7 +25,7 @@ def run_live_smoke(config, report_path="output/api-smoke/report.json"):
         report["datasets"] = results
         if any(entry["status"] != "ready" for entry in results):
             raise ValueError("Real API ingestion did not complete; inspect datasets[].error")
-        with http_session() as session:
+        with http_session(config.get("api")) as session:
             for entry in results:
                 role = entry["dataset_role"]
                 if role == "zone_lookup":

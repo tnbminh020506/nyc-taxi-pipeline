@@ -10,6 +10,9 @@ api:
   page_size: 100
   max_pages: 20
   timeout_seconds: 60
+  max_retries: 5
+  retry_backoff_seconds: 2
+  retry_backoff_max_seconds: 20
 datasets:
   history:
     range_start: '2025-01-06T08:00:00-05:00'

@@ -150,6 +150,15 @@ def test_rate_limit_is_retried(config, server, monkeypatch):
     assert result["status"] == "ready" and len(server["requests"]) == 2
 
 
+def test_service_errors_recover_with_configured_retries(config, server, monkeypatch):
+    use_api(config, server, monkeypatch)
+    config["api"].update(max_retries=2, retry_backoff_seconds=0)
+    server["responses"] = [(503, {"message": "temporarily unavailable"}),
+                           (500, {"message": "temporarily unavailable"}), (200, [row()])]
+    result, = run_ingestion(config, ("replay",))
+    assert result["status"] == "ready" and len(server["requests"]) == 3
+
+
 def test_missing_app_token_fails_without_http(config, server, monkeypatch):
     use_api(config, server, monkeypatch)
     monkeypatch.delenv("SOCRATA_APP_TOKEN")
