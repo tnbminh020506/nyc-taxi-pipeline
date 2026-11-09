@@ -103,7 +103,7 @@ chạy ingestion tại workspace dùng chung hoặc thống nhất lại mount/�
 | `parquet_sha256` | Checksum file để replay phát hiện dữ liệu đã bị sửa |
 | `error` | Lý do khi chưa hoàn tất hoặc thất bại |
 
-Mỗi lần chạy ghi file mới và thay manifest nguyên tử. Cùng vai trò–nguồn–phạm vi
+Một lượt tải mới ghi file mới và thay manifest nguyên tử. Cùng vai trò–nguồn–phạm vi
 chỉ có một mục, lookup có một mục theo nguồn. Lần tải lại lỗi thay trạng thái cũ,
 không để mục cũ tiếp tục được coi là dữ liệu mới. File từ lần cũ vẫn tồn tại cho
 tiến trình đang đọc; không tự xóa dữ liệu. Chạy **một tiến trình ingestion** ghi

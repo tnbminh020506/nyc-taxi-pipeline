@@ -1,0 +1,3333 @@
+{
+  "status": "passed",
+  "expected_runs": 20,
+  "recorded_runs": 20,
+  "coverage_complete": true,
+  "successful_runs": 20,
+  "fresh_downloads_only": true,
+  "api_logical_calls": 110,
+  "api_first_attempt_successes": 61,
+  "api_first_attempt_success_rate": 0.5545454545454546,
+  "api_final_successes": 110,
+  "api_final_success_rate": 1.0,
+  "api_observed_attempt_statuses": {
+    "200": 110,
+    "503": 76,
+    "ReadTimeout": 3,
+    "500": 4
+  },
+  "lookup_logical_calls": 20,
+  "verified_parquet_rows": 4936,
+  "median_api_call_seconds": 13.4705,
+  "p95_api_call_seconds": 38.285,
+  "median_run_seconds": 64.251,
+  "p95_run_seconds": 239.665,
+  "runs": [
+    {
+      "number": 1,
+      "status": "passed",
+      "seconds": 42.668,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 63,
+          "parquet_rows": 63,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:01:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 34,
+          "parquet_rows": 34,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:01:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 11.039
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 15.346
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.043
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 14.614
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 1.53
+        }
+      ],
+      "replay": {
+        "rows_read": 34,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 34,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:01:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 63,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "2bc5f095b561000fdf640ac94fc28c09e469199b7b51d4fb0d98f986fb1f794c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:01:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 34,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "daf540de56e64946ef63442b45159354fe390e2c0ed5a7e64bd950c730e0c626",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "status": "passed",
+      "seconds": 41.494,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:01:00' AND tpep_pickup_datetime < '2025-01-06T08:02:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 27,
+          "parquet_rows": 27,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:01:00' AND tpep_pickup_datetime < '2025-01-20T08:02:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 12.966
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 6.451
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.019
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 14.504
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 7.521
+        }
+      ],
+      "replay": {
+        "rows_read": 27,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 27,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:01:00+00:00",
+          "range_end": "2025-01-06T13:02:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 70,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "f783cb755052bff4a80ba7bd0a65c109c9b5f1192a1b21d000a482b6df00649c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:01:00+00:00",
+          "range_end": "2025-01-20T13:02:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 27,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "6197e0d0475a0d4d1834130ba005c28f518b431ef5f604aacd7b0cfbdb77d9d1",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "status": "passed",
+      "seconds": 45.156,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:02:00' AND tpep_pickup_datetime < '2025-01-06T08:03:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 28,
+          "parquet_rows": 28,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:02:00' AND tpep_pickup_datetime < '2025-01-20T08:03:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 5.356
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 14.999
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.058
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 10.487
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 14.223
+        }
+      ],
+      "replay": {
+        "rows_read": 28,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 28,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:02:00+00:00",
+          "range_end": "2025-01-06T13:03:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 70,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "7c8866639d799508db0e99074dea115184177d06f390a54d237a6ea2ce445380",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:02:00+00:00",
+          "range_end": "2025-01-20T13:03:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 28,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "5a20fe63ac6e342f17cff5758f9d0d07ead9fbadfdb2f3321b48d699eb33ac40",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "status": "passed",
+      "seconds": 36.567,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 68,
+          "parquet_rows": 68,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:03:00' AND tpep_pickup_datetime < '2025-01-06T08:04:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 26,
+          "parquet_rows": 26,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:03:00' AND tpep_pickup_datetime < '2025-01-20T08:04:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 18.399
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 5.041
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.019
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 11.395
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 1.681
+        }
+      ],
+      "replay": {
+        "rows_read": 26,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 26,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:03:00+00:00",
+          "range_end": "2025-01-06T13:04:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 68,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "d4d9da2842abc4c58d6e1ac134e321e8a426f93108c8e6d0a8a9ab4b6d2b3f58",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:03:00+00:00",
+          "range_end": "2025-01-20T13:04:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 26,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "b716218e2d6c7b8ceee48582c9fe760f49192ea945161fa5cb318f8269c2fc89",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "status": "passed",
+      "seconds": 54.771,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 67,
+          "parquet_rows": 67,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:04:00' AND tpep_pickup_datetime < '2025-01-06T08:05:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 35,
+          "parquet_rows": 35,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:04:00' AND tpep_pickup_datetime < '2025-01-20T08:05:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 19.282
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 10.616
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.041
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 10.166
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 14.633
+        }
+      ],
+      "replay": {
+        "rows_read": 35,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 35,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:04:00+00:00",
+          "range_end": "2025-01-06T13:05:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 67,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "ae85a127dcfa61598c4216cab897a46d5422381e40c3d56c35693bf6063ba85c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:04:00+00:00",
+          "range_end": "2025-01-20T13:05:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 35,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "34bd221bc4d4ea7aca73bd799126e62fc6d0863e1c50c6466d185beab40ba405",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "status": "passed",
+      "seconds": 78.245,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 63,
+          "parquet_rows": 63,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:01:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 34,
+          "parquet_rows": 34,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:01:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 13.43
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            503,
+            200
+          ],
+          "attempts": 4,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 44.896
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.092
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 16.225
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 3.396
+        }
+      ],
+      "replay": {
+        "rows_read": 34,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 34,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:01:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 63,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "2bc5f095b561000fdf640ac94fc28c09e469199b7b51d4fb0d98f986fb1f794c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:01:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 34,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "daf540de56e64946ef63442b45159354fe390e2c0ed5a7e64bd950c730e0c626",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "status": "passed",
+      "seconds": 158.74,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:01:00' AND tpep_pickup_datetime < '2025-01-06T08:02:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 27,
+          "parquet_rows": 27,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:01:00' AND tpep_pickup_datetime < '2025-01-20T08:02:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 36.182
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            "ReadTimeout",
+            503,
+            503,
+            200
+          ],
+          "attempts": 4,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 93.808
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.092
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 18.031
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 10.255
+        }
+      ],
+      "replay": {
+        "rows_read": 27,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 27,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:01:00+00:00",
+          "range_end": "2025-01-06T13:02:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 70,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "f783cb755052bff4a80ba7bd0a65c109c9b5f1192a1b21d000a482b6df00649c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:01:00+00:00",
+          "range_end": "2025-01-20T13:02:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 27,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "6197e0d0475a0d4d1834130ba005c28f518b431ef5f604aacd7b0cfbdb77d9d1",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "status": "passed",
+      "seconds": 66.145,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:02:00' AND tpep_pickup_datetime < '2025-01-06T08:03:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 28,
+          "parquet_rows": 28,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:02:00' AND tpep_pickup_datetime < '2025-01-20T08:03:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 13.761
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 5.475
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.019
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 7.891
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            503,
+            200
+          ],
+          "attempts": 4,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 38.947
+        }
+      ],
+      "replay": {
+        "rows_read": 28,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 28,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:02:00+00:00",
+          "range_end": "2025-01-06T13:03:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 70,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "7c8866639d799508db0e99074dea115184177d06f390a54d237a6ea2ce445380",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:02:00+00:00",
+          "range_end": "2025-01-20T13:03:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 28,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "5a20fe63ac6e342f17cff5758f9d0d07ead9fbadfdb2f3321b48d699eb33ac40",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "status": "passed",
+      "seconds": 69.195,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 68,
+          "parquet_rows": 68,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:03:00' AND tpep_pickup_datetime < '2025-01-06T08:04:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 26,
+          "parquet_rows": 26,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:03:00' AND tpep_pickup_datetime < '2025-01-20T08:04:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 14.546
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 12.93
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.094
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 22.162
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 18.77
+        }
+      ],
+      "replay": {
+        "rows_read": 26,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 26,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:03:00+00:00",
+          "range_end": "2025-01-06T13:04:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 68,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "d4d9da2842abc4c58d6e1ac134e321e8a426f93108c8e6d0a8a9ab4b6d2b3f58",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:03:00+00:00",
+          "range_end": "2025-01-20T13:04:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 26,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "b716218e2d6c7b8ceee48582c9fe760f49192ea945161fa5cb318f8269c2fc89",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "status": "passed",
+      "seconds": 42.95,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 67,
+          "parquet_rows": 67,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:04:00' AND tpep_pickup_datetime < '2025-01-06T08:05:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 35,
+          "parquet_rows": 35,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:04:00' AND tpep_pickup_datetime < '2025-01-20T08:05:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 16.045
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 7.334
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.113
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 3.32
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 15.747
+        }
+      ],
+      "replay": {
+        "rows_read": 35,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 35,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:04:00+00:00",
+          "range_end": "2025-01-06T13:05:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 67,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "ae85a127dcfa61598c4216cab897a46d5422381e40c3d56c35693bf6063ba85c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:04:00+00:00",
+          "range_end": "2025-01-20T13:05:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 35,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "34bd221bc4d4ea7aca73bd799126e62fc6d0863e1c50c6466d185beab40ba405",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "status": "passed",
+      "seconds": 76.428,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 63,
+          "parquet_rows": 63,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:01:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 34,
+          "parquet_rows": 34,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:01:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 29.434
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 3.512
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.116
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            503,
+            503,
+            200
+          ],
+          "attempts": 5,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 26.651
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 16.4
+        }
+      ],
+      "replay": {
+        "rows_read": 34,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 34,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:01:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 63,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "2bc5f095b561000fdf640ac94fc28c09e469199b7b51d4fb0d98f986fb1f794c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:01:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 34,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "daf540de56e64946ef63442b45159354fe390e2c0ed5a7e64bd950c730e0c626",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "status": "passed",
+      "seconds": 76.056,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:01:00' AND tpep_pickup_datetime < '2025-01-06T08:02:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 27,
+          "parquet_rows": 27,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:01:00' AND tpep_pickup_datetime < '2025-01-20T08:02:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 11.163
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 20.607
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.11
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            500,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 25.794
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 18.352
+        }
+      ],
+      "replay": {
+        "rows_read": 27,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 27,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:01:00+00:00",
+          "range_end": "2025-01-06T13:02:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 70,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "f783cb755052bff4a80ba7bd0a65c109c9b5f1192a1b21d000a482b6df00649c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:01:00+00:00",
+          "range_end": "2025-01-20T13:02:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 27,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "6197e0d0475a0d4d1834130ba005c28f518b431ef5f604aacd7b0cfbdb77d9d1",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 13,
+      "status": "passed",
+      "seconds": 53.468,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:02:00' AND tpep_pickup_datetime < '2025-01-06T08:03:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 28,
+          "parquet_rows": 28,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:02:00' AND tpep_pickup_datetime < '2025-01-20T08:03:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 11.952
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 11.367
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.089
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 6.244
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            503,
+            200
+          ],
+          "attempts": 4,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 23.294
+        }
+      ],
+      "replay": {
+        "rows_read": 28,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 28,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:02:00+00:00",
+          "range_end": "2025-01-06T13:03:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 70,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "7c8866639d799508db0e99074dea115184177d06f390a54d237a6ea2ce445380",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:02:00+00:00",
+          "range_end": "2025-01-20T13:03:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 28,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "5a20fe63ac6e342f17cff5758f9d0d07ead9fbadfdb2f3321b48d699eb33ac40",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 14,
+      "status": "passed",
+      "seconds": 32.805,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 68,
+          "parquet_rows": 68,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:03:00' AND tpep_pickup_datetime < '2025-01-06T08:04:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 26,
+          "parquet_rows": 26,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:03:00' AND tpep_pickup_datetime < '2025-01-20T08:04:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 1.678
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 9.734
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.019
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 9.92
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 11.282
+        }
+      ],
+      "replay": {
+        "rows_read": 26,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 26,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:03:00+00:00",
+          "range_end": "2025-01-06T13:04:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 68,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "d4d9da2842abc4c58d6e1ac134e321e8a426f93108c8e6d0a8a9ab4b6d2b3f58",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:03:00+00:00",
+          "range_end": "2025-01-20T13:04:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 26,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "b716218e2d6c7b8ceee48582c9fe760f49192ea945161fa5cb318f8269c2fc89",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 15,
+      "status": "passed",
+      "seconds": 53.688,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 67,
+          "parquet_rows": 67,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:04:00' AND tpep_pickup_datetime < '2025-01-06T08:05:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 35,
+          "parquet_rows": 35,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:04:00' AND tpep_pickup_datetime < '2025-01-20T08:05:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 13.66
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 16.229
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.093
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 13.412
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 10.191
+        }
+      ],
+      "replay": {
+        "rows_read": 35,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 35,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:04:00+00:00",
+          "range_end": "2025-01-06T13:05:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 67,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "ae85a127dcfa61598c4216cab897a46d5422381e40c3d56c35693bf6063ba85c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:04:00+00:00",
+          "range_end": "2025-01-20T13:05:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 35,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "34bd221bc4d4ea7aca73bd799126e62fc6d0863e1c50c6466d185beab40ba405",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 16,
+      "status": "passed",
+      "seconds": 62.357,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 63,
+          "parquet_rows": 63,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:01:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 34,
+          "parquet_rows": 34,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:01:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 10.145
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 17.142
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.091
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 11.697
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 23.159
+        }
+      ],
+      "replay": {
+        "rows_read": 34,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 34,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:01:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 63,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "2bc5f095b561000fdf640ac94fc28c09e469199b7b51d4fb0d98f986fb1f794c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:01:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 34,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "daf540de56e64946ef63442b45159354fe390e2c0ed5a7e64bd950c730e0c626",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 17,
+      "status": "passed",
+      "seconds": 76.248,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:01:00' AND tpep_pickup_datetime < '2025-01-06T08:02:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 27,
+          "parquet_rows": 27,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:01:00' AND tpep_pickup_datetime < '2025-01-20T08:02:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 20.395
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            503,
+            200
+          ],
+          "attempts": 4,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 31.145
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.111
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 11.154
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 13.413
+        }
+      ],
+      "replay": {
+        "rows_read": 27,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 27,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:01:00+00:00",
+          "range_end": "2025-01-06T13:02:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 70,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "f783cb755052bff4a80ba7bd0a65c109c9b5f1192a1b21d000a482b6df00649c",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:01:00+00:00",
+          "range_end": "2025-01-20T13:02:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 27,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "6197e0d0475a0d4d1834130ba005c28f518b431ef5f604aacd7b0cfbdb77d9d1",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 18,
+      "status": "passed",
+      "seconds": 90.338,
+      "duration_minutes": 1,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 70,
+          "parquet_rows": 70,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:02:00' AND tpep_pickup_datetime < '2025-01-06T08:03:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 28,
+          "parquet_rows": 28,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:02:00' AND tpep_pickup_datetime < '2025-01-20T08:03:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 20.704
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 29.333
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.11
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 17.818
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            503,
+            200
+          ],
+          "attempts": 4,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 22.347
+        }
+      ],
+      "replay": {
+        "rows_read": 28,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 28,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:02:00+00:00",
+          "range_end": "2025-01-06T13:03:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 70,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "7c8866639d799508db0e99074dea115184177d06f390a54d237a6ea2ce445380",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:02:00+00:00",
+          "range_end": "2025-01-20T13:03:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 28,
+          "invalid_row_count": 0,
+          "page_count": 1,
+          "pages_downloaded": 1,
+          "pages_reused": 0,
+          "parquet_sha256": "5a20fe63ac6e342f17cff5758f9d0d07ead9fbadfdb2f3321b48d699eb33ac40",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 19,
+      "status": "passed",
+      "seconds": 239.665,
+      "duration_minutes": 15,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 1059,
+          "parquet_rows": 1059,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:03:00' AND tpep_pickup_datetime < '2025-01-06T08:18:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 516,
+          "parquet_rows": 516,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:03:00' AND tpep_pickup_datetime < '2025-01-20T08:18:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 8.423
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 6.651
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 13.292
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 23.287
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 13.749
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 2.509
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 13.511
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 24.069
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 34.42
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 15.334
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 4.375
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 7.234
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 13.855
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 3.944
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 7.1
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 7.26
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 6.449
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.104
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            "ReadTimeout",
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 23.863
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 10.122
+        }
+      ],
+      "replay": {
+        "rows_read": 516,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 516,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:03:00+00:00",
+          "range_end": "2025-01-06T13:18:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1059,
+          "invalid_row_count": 0,
+          "page_count": 11,
+          "pages_downloaded": 11,
+          "pages_reused": 0,
+          "parquet_sha256": "18432fdebd9d41ce44956f9cdd3a4a39a4e52170bd7e09c16f6085a5dbdec17d",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:03:00+00:00",
+          "range_end": "2025-01-20T13:18:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 516,
+          "invalid_row_count": 0,
+          "page_count": 6,
+          "pages_downloaded": 6,
+          "pages_reused": 0,
+          "parquet_sha256": "25583061641ea28ca631d9219176bb6904840edec64e5115a659f8d3e119bb27",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    },
+    {
+      "number": 20,
+      "status": "passed",
+      "seconds": 363.136,
+      "duration_minutes": 15,
+      "checks": [
+        {
+          "role": "history",
+          "api_count": 1074,
+          "parquet_rows": 1074,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:04:00' AND tpep_pickup_datetime < '2025-01-06T08:19:00'",
+          "status": "passed"
+        },
+        {
+          "role": "replay",
+          "api_count": 531,
+          "parquet_rows": 531,
+          "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:04:00' AND tpep_pickup_datetime < '2025-01-20T08:19:00'",
+          "status": "passed"
+        }
+      ],
+      "error": null,
+      "http_requests": [
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            503,
+            503,
+            503,
+            200
+          ],
+          "attempts": 6,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 50.592
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            "ReadTimeout",
+            503,
+            200
+          ],
+          "attempts": 4,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 38.285
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 3.518
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 24.311
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 5.561
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            500,
+            500,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 48.472
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 8.548
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            503,
+            200
+          ],
+          "attempts": 4,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 34.975
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 7.526
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 16.759
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 5.697
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 14.507
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            503,
+            200
+          ],
+          "attempts": 3,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 34.402
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 8.645
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 6.203
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            503,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 13.752
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 12.634
+        },
+        {
+          "method": "GET",
+          "kind": "lookup",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 0.116
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            500,
+            200
+          ],
+          "attempts": 2,
+          "success": true,
+          "first_attempt_success": false,
+          "seconds": 23.254
+        },
+        {
+          "method": "GET",
+          "kind": "api",
+          "status": 200,
+          "attempt_statuses": [
+            200
+          ],
+          "attempts": 1,
+          "success": true,
+          "first_attempt_success": true,
+          "seconds": 5.28
+        }
+      ],
+      "replay": {
+        "rows_read": 531,
+        "invalid_rows": 0,
+        "outside_range": 0,
+        "events_prepared": 531,
+        "mode": "dry-run"
+      },
+      "datasets": [
+        {
+          "dataset_role": "history",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-06T13:04:00+00:00",
+          "range_end": "2025-01-06T13:19:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1074,
+          "invalid_row_count": 0,
+          "page_count": 11,
+          "pages_downloaded": 11,
+          "pages_reused": 0,
+          "parquet_sha256": "5810680979d9a9000e5f0147f0911df6c30dfb04bd056d5f04cf15ec5f4bded3",
+          "sha256": null
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "irx2-vgm4",
+          "range_start": "2025-01-20T13:04:00+00:00",
+          "range_end": "2025-01-20T13:19:00+00:00",
+          "input_mode": "api",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 531,
+          "invalid_row_count": 0,
+          "page_count": 6,
+          "pages_downloaded": 6,
+          "pages_reused": 0,
+          "parquet_sha256": "3cae6fc69ee94401a993c96a699c8e350444564684edad3390c6e566b582f76e",
+          "sha256": null
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "input_mode": null,
+          "status": "ready",
+          "coverage_complete": null,
+          "row_count": 265,
+          "invalid_row_count": null,
+          "page_count": null,
+          "pages_downloaded": null,
+          "pages_reused": null,
+          "parquet_sha256": null,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed"
+        }
+      ]
+    }
+  ],
+  "source_run": "https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42637243338",
+  "tested_commit": "ab95694a9def06c75aa35e3740ced80b95a9aedf",
+  "started_at": "2026-11-09T14:42:20.968748+00:00",
+  "finished_at": "2026-11-09T15:13:09.198345+00:00",
+  "retry_policy": {
+    "max_retries": 15,
+    "request_budget_seconds": 120.0,
+    "retry_backoff_seconds": 2.0,
+    "retry_backoff_max_seconds": 6.0,
+    "min_retry_delay_seconds": 2.0,
+    "retry_jitter_seconds": 1.0,
+    "min_request_interval_seconds": 1.0,
+    "connection_close": null
+  },
+  "criteria": {
+    "required_successful_runs": 5,
+    "max_small_run_seconds": 180,
+    "max_multipage_run_seconds": 600,
+    "cache_allowed": false,
+    "first_attempt_rate": "reported separately; provider availability is not under client control"
+  },
+  "dataset": "irx2-vgm4",
+  "page_size": 100
+}

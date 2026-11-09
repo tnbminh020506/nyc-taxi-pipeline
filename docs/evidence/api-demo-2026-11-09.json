@@ -1,0 +1,181 @@
+{
+  "started_at": "2026-11-09T15:16:23.987969+00:00",
+  "status": "passed",
+  "dataset_id": "irx2-vgm4",
+  "api_version": 2,
+  "endpoint": "https://data.cityofnewyork.us/resource/irx2-vgm4.json",
+  "checks": [
+    {
+      "role": "history",
+      "api_count": 1029,
+      "parquet_rows": 1029,
+      "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-06T08:00:00' AND tpep_pickup_datetime < '2025-01-06T08:15:00'",
+      "status": "passed"
+    },
+    {
+      "role": "replay",
+      "api_count": 484,
+      "parquet_rows": 484,
+      "count_query": "SELECT count(*) AS total WHERE tpep_pickup_datetime >= '2025-01-20T08:00:00' AND tpep_pickup_datetime < '2025-01-20T08:15:00'",
+      "status": "passed"
+    }
+  ],
+  "datasets": [
+    {
+      "dataset_role": "history",
+      "source_id": "irx2-vgm4",
+      "range_start": "2025-01-06T13:00:00+00:00",
+      "range_end": "2025-01-06T13:15:00+00:00",
+      "raw_path": "/home/runner/work/nyc-taxi-pipeline/nyc-taxi-pipeline/data/raw/history-5b439982cb98407f997ca087d1f42431",
+      "parquet_path": "/home/runner/work/nyc-taxi-pipeline/nyc-taxi-pipeline/data/processed/history-5b439982cb98407f997ca087d1f42431.parquet",
+      "status": "ready",
+      "coverage_complete": true,
+      "page_count": 2,
+      "row_count": 1029,
+      "invalid_row_count": 0,
+      "source_timezone": "America/New_York",
+      "pages_reused": 0,
+      "pages_downloaded": 2,
+      "input_mode": "api",
+      "parquet_sha256": "1bc49bf2540aaf23ca60c762f7b530ee1f011f5d0c61db003083fd7f31605357"
+    },
+    {
+      "dataset_role": "replay",
+      "source_id": "irx2-vgm4",
+      "range_start": "2025-01-20T13:00:00+00:00",
+      "range_end": "2025-01-20T13:15:00+00:00",
+      "raw_path": "/home/runner/work/nyc-taxi-pipeline/nyc-taxi-pipeline/data/raw/replay-fce5e4530c6e48678f6c2ef35817f388",
+      "parquet_path": "/home/runner/work/nyc-taxi-pipeline/nyc-taxi-pipeline/data/processed/replay-fce5e4530c6e48678f6c2ef35817f388.parquet",
+      "status": "ready",
+      "coverage_complete": true,
+      "page_count": 1,
+      "row_count": 484,
+      "invalid_row_count": 0,
+      "source_timezone": "America/New_York",
+      "pages_reused": 0,
+      "pages_downloaded": 1,
+      "input_mode": "api",
+      "parquet_sha256": "c4e10bb1fee1ba26777924cff6ff5f051f9052dd8fdbbe8989fdd2ba97d988ff"
+    },
+    {
+      "dataset_role": "zone_lookup",
+      "source_id": "taxi-zone-lookup",
+      "range_start": null,
+      "range_end": null,
+      "raw_path": "/home/runner/work/nyc-taxi-pipeline/nyc-taxi-pipeline/data/raw/zone-lookup-3a52d0f6e6844f1aa52fb32f72b7f44a.csv",
+      "parquet_path": null,
+      "status": "ready",
+      "row_count": 265,
+      "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+      "columns": [
+        "LocationID",
+        "Borough",
+        "Zone",
+        "service_zone"
+      ]
+    }
+  ],
+  "retry_policy": {
+    "max_retries": 15,
+    "request_budget_seconds": 120.0,
+    "retry_backoff_seconds": 2.0,
+    "retry_backoff_max_seconds": 6.0,
+    "min_retry_delay_seconds": 2.0,
+    "retry_jitter_seconds": 1.0,
+    "min_request_interval_seconds": 1.0,
+    "connection_close": null
+  },
+  "replay": {
+    "rows_read": 484,
+    "invalid_rows": 0,
+    "outside_range": 0,
+    "events_prepared": 484,
+    "mode": "dry-run"
+  },
+  "finished_at": "2026-11-09T15:17:24.737192+00:00",
+  "seconds": 60.749,
+  "http_requests": [
+    {
+      "method": "GET",
+      "kind": "api",
+      "status": 200,
+      "attempt_statuses": [
+        503,
+        200
+      ],
+      "attempts": 2,
+      "success": true,
+      "first_attempt_success": false,
+      "seconds": 25.329
+    },
+    {
+      "method": "GET",
+      "kind": "api",
+      "status": 200,
+      "attempt_statuses": [
+        200
+      ],
+      "attempts": 1,
+      "success": true,
+      "first_attempt_success": true,
+      "seconds": 6.761
+    },
+    {
+      "method": "GET",
+      "kind": "api",
+      "status": 200,
+      "attempt_statuses": [
+        200
+      ],
+      "attempts": 1,
+      "success": true,
+      "first_attempt_success": true,
+      "seconds": 19.318
+    },
+    {
+      "method": "GET",
+      "kind": "lookup",
+      "status": 200,
+      "attempt_statuses": [
+        200
+      ],
+      "attempts": 1,
+      "success": true,
+      "first_attempt_success": true,
+      "seconds": 0.092
+    },
+    {
+      "method": "GET",
+      "kind": "api",
+      "status": 200,
+      "attempt_statuses": [
+        200
+      ],
+      "attempts": 1,
+      "success": true,
+      "first_attempt_success": true,
+      "seconds": 4.99
+    },
+    {
+      "method": "GET",
+      "kind": "api",
+      "status": 200,
+      "attempt_statuses": [
+        200
+      ],
+      "attempts": 1,
+      "success": true,
+      "first_attempt_success": true,
+      "seconds": 3.921
+    }
+  ],
+  "source_run": "https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42642938761",
+  "tested_commit": "a3baf7d5f2a90c6a77db7981e423bd210b92ce83",
+  "windows_replay_verification": {
+    "rows_read": 484,
+    "invalid_rows": 0,
+    "outside_range": 0,
+    "events_prepared": 484,
+    "mode": "dry-run"
+  }
+}

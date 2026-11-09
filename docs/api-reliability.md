@@ -54,7 +54,7 @@ trả HTML 403, khác với phản hồi xác thực JSON ở runner.
   cập nhật, chạy `--no-resume`. Không ghi ready khi chưa hết phạm vi.
 - Phép nghiệm thu luôn tắt resume, kiểm tra ID nguồn và số dòng bằng API thật.
 
-Kết quả sau sửa sẽ được ghi từ toàn bộ các batch, bao gồm cả lượt thất bại,
+Kết quả bên dưới được tổng hợp từ toàn bộ các batch, bao gồm cả lượt thất bại,
 thời gian và số lần retry; không chọn riêng các lượt xanh để báo cáo.
 
 ## Đợt 1: chưa đạt tiêu chí 20/20
@@ -87,3 +87,70 @@ kết nối cải thiện tỉ lệ thành công; không bật mặc định ch�
   backoff tối đa 6 giây cộng jitter 0–1 giây. Không retry auth/TLS; tôn trọng Retry-After.
 - Đo lại 20 lượt mới, không cache; vẫn yêu cầu toàn bộ lượt, đối chiếu và thời gian
   đạt như tiêu chí ban đầu. Đợt 1 thất bại được giữ nguyên trong lịch sử.
+
+### Kết quả đợt 2: đạt tiêu chí của phép đo
+
+[Lượt đo đủ 20 lần](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42637243338),
+commit `ab95694`, GitHub-hosted Ubuntu, 09/11/2026.
+
+| Chỉ tiêu | Kết quả |
+| --- | --- |
+| Pipeline mới, không dùng trang cache | **20/20 đạt** |
+| Lời gọi taxi API hoàn tất sau phục hồi | **110/110 (100%)** |
+| Thành công ngay lần đầu | **61/110 (55,45%)** |
+| Lỗi từng lần thử đã phục hồi | 76 × 503, 4 × 500, 3 × ReadTimeout |
+| Lookup (tách riêng) | 20/20 |
+| Dòng Parquet đối chiếu với COUNT(*) | 4.936, có lặp dữ liệu giữa các lượt đo |
+| Trung vị thời gian một lời gọi API, gồm retry | 13,471 giây |
+| P95 thời gian một lời gọi API | 38,285 giây |
+| Trung vị toàn lượt | 64,251 giây |
+| Lượt một phút nhanh/chậm nhất | 32,805 / 158,740 giây |
+| Hai lượt 15 phút, page_size=100 | 239,665 / 363,136 giây |
+
+Mỗi lượt so số dòng JSON/Parquet với COUNT(*) độc lập, kiểm tra ID nguồn không
+trùng/thiếu và tạo đúng số event replay hợp lệ. Các lượt một phút đều dưới 180
+giây, hai lượt 15 phút dưới 600 giây, đúng ngưỡng đã đặt trước. Chạy nối tiếp,
+không thay lỗi bằng dữ liệu mẫu hoặc đọc lại trang từ lượt trước.
+Xem [toàn bộ số liệu và lịch sử retry](evidence/api-campaign-2-2026-11-09.json).
+
+**Kết luận:** tầng phục hồi của pipeline đạt tiêu chí trong mẫu 20 lượt này.
+Nguồn NYC vẫn bất ổn ở lần gọi đầu; không gọi đây là API không còn lỗi, không
+cam kết 100% cho các lần chạy tương lai. Hai đợt đo diễn ra khác thời điểm,
+không đủ để kết luận mọi khác biệt tỉ lệ là do thay đổi code.
+
+Gọi trực tiếp từ môi trường Windows này vẫn chưa đạt: phép thử có bộ lọc cuối
+cùng nhận HTTP 403 sau 15,719 giây và không retry lỗi quyền truy cập. Luồng đã
+nghiệm thu là GitHub Actions → tải artifact → kiểm tra/import → replay cục bộ.
+Đây là đường lấy dữ liệu sử dụng được hiện tại, không phải bằng chứng đã sửa
+được chính sách truy cập của NYC trên mạng máy này. V3 còn cần credential hợp lệ.
+
+## Mẫu tải dùng thực tế với trang lớn hơn
+
+[Mẫu demo 15 phút](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42642938761),
+`configs/demo.example.yaml`, page_size=1000, cả hai kỳ 08:00–08:15 giờ New York:
+
+- History 06/01/2025: **1.029 dòng**, 2 trang; replay 20/01/2025: **484 dòng**, 1 trang.
+- Lookup 265 vùng. Hai COUNT(*) khớp Parquet; không có dòng lỗi, tạo 484 event replay.
+- Hoàn tất **60,749 giây**: 5 lời gọi API logic, 6 lần thử thực tế.
+- Đã tải về Windows, kiểm tra checksum và tạo lại 484 event_id giống bản trên runner.
+  Dùng `scripts/import_api_artifact.py` để ánh xạ manifest mà không gọi lại NYC.
+
+[Báo cáo mẫu demo](evidence/api-demo-2026-11-09.json). Thời gian này chỉ là một mẫu
+với trang lớn và phạm vi khác nhẹ so với hai ca stress; không phải phép chứng minh
+speedup có kiểm soát. Trang lớn giảm số lần gọi cần thiết, nhưng chưa benchmark
+tải cả năm. Khi mở rộng khoảng dữ liệu, vẫn cần giới hạn trang, resume và chấp nhận
+nguồn có thể chậm/gián đoạn. Sau khi tải xong, chạy batch/replay từ file đã lưu.
+
+## Cách chạy lại phép đo
+
+```powershell
+gh workflow run api-reliability.yml --ref demo/ingestion -f mode=acceptance
+# Sau khi hoàn tất, tải đủ 4 artifact rồi tổng hợp (không chọn riêng batch xanh):
+gh run download <RUN_ID> --dir output/reliability-<RUN_ID>
+python scripts/summarize_api_reliability.py output/reliability-<RUN_ID>
+```
+
+Các workflow gọi NYC là thủ công, cùng một nhóm concurrency để tránh chạy dồn.
+Artifact giữ 14 ngày cho phép đo độ ổn định; JSON tổng hợp ở `docs/evidence/` được
+commit để giữ lại kết quả khi artifact hết hạn. Source JSON/Parquet nằm trong
+artifact và bản tải cục bộ, không đưa toàn bộ dữ liệu phát sinh vào Git.
