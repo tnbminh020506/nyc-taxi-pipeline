@@ -1,0 +1,512 @@
+{
+  "started_at": "2026-11-09T19:32:49.705319+00:00",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.10.11",
+  "duckdb": "1.5.6",
+  "pyarrow": "23.0.1",
+  "physical_ram_bytes": 16913203200,
+  "duckdb_settings": {
+    "memory_limit": "512MB",
+    "threads": 2,
+    "temp_directory": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\spill",
+    "max_temp_directory_size": "8GB",
+    "extension_directory": "output/duckdb-extensions"
+  },
+  "small_runs": [
+    {
+      "run": 1,
+      "entries": [
+        {
+          "dataset_role": "history",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-history-f72ac8b77e264c208d294d4d9f7a70db",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-history-f72ac8b77e264c208d294d4d9f7a70db.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1029,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "03322ed9ec92c642e1cfad39468939d1ad523f723e5b2b363f444d972b7830ec",
+          "parquet_bytes": 12207,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 1.859
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-replay-9edeb53937e44257a0bb66f6ab67ff36",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-replay-9edeb53937e44257a0bb66f6ab67ff36.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 484,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "364efc9e43f592c27c58df2c2e6c3dd63f9fd062af2cc4c738938e871a762873",
+          "parquet_bytes": 7798,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 1.937
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\zone-lookup-97bea1bf88ca441fb38c04a661683936.csv",
+          "parquet_path": null,
+          "status": "ready",
+          "row_count": 265,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+          "columns": [
+            "LocationID",
+            "Borough",
+            "Zone",
+            "service_zone"
+          ]
+        }
+      ],
+      "metrics": {
+        "baseline_rss_bytes": 72249344,
+        "peak_rss_bytes": 115777536,
+        "peak_spill_bytes": 0,
+        "wall_seconds": 4.031
+      },
+      "replay_events": 484,
+      "repeat_replay_match": true
+    },
+    {
+      "run": 2,
+      "entries": [
+        {
+          "dataset_role": "history",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-history-93fadf41d20e4a989219510707a292c3",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-history-93fadf41d20e4a989219510707a292c3.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1029,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "03322ed9ec92c642e1cfad39468939d1ad523f723e5b2b363f444d972b7830ec",
+          "parquet_bytes": 12207,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 2.14
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-replay-e1793efc15ce4824ae224778018042e5",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-replay-e1793efc15ce4824ae224778018042e5.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 484,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "364efc9e43f592c27c58df2c2e6c3dd63f9fd062af2cc4c738938e871a762873",
+          "parquet_bytes": 7798,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 1.719
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\zone-lookup-776b09e130b9443caad43a46f53bff9e.csv",
+          "parquet_path": null,
+          "status": "ready",
+          "row_count": 265,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+          "columns": [
+            "LocationID",
+            "Borough",
+            "Zone",
+            "service_zone"
+          ]
+        }
+      ],
+      "metrics": {
+        "baseline_rss_bytes": 95940608,
+        "peak_rss_bytes": 128036864,
+        "peak_spill_bytes": 0,
+        "wall_seconds": 4.0
+      },
+      "replay_events": 484,
+      "repeat_replay_match": true
+    },
+    {
+      "run": 3,
+      "entries": [
+        {
+          "dataset_role": "history",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-history-d4e96485b7b04e708f0be54db3912083",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-history-d4e96485b7b04e708f0be54db3912083.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1029,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "03322ed9ec92c642e1cfad39468939d1ad523f723e5b2b363f444d972b7830ec",
+          "parquet_bytes": 12207,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 1.734
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-replay-0035e33bcfd54852942c708c1db5143a",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-replay-0035e33bcfd54852942c708c1db5143a.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 484,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "364efc9e43f592c27c58df2c2e6c3dd63f9fd062af2cc4c738938e871a762873",
+          "parquet_bytes": 7798,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 2.25
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\zone-lookup-fa9419419d8e4931a16f3e038e9ceafb.csv",
+          "parquet_path": null,
+          "status": "ready",
+          "row_count": 265,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+          "columns": [
+            "LocationID",
+            "Borough",
+            "Zone",
+            "service_zone"
+          ]
+        }
+      ],
+      "metrics": {
+        "baseline_rss_bytes": 97349632,
+        "peak_rss_bytes": 127733760,
+        "peak_spill_bytes": 0,
+        "wall_seconds": 4.203
+      },
+      "replay_events": 484,
+      "repeat_replay_match": true
+    },
+    {
+      "run": 4,
+      "entries": [
+        {
+          "dataset_role": "history",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-history-c13161c2f1ba4cc7a5778fd4dce13c19",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-history-c13161c2f1ba4cc7a5778fd4dce13c19.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1029,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "03322ed9ec92c642e1cfad39468939d1ad523f723e5b2b363f444d972b7830ec",
+          "parquet_bytes": 12207,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 2.328
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-replay-e4a9c74f40e748f4a591d7bb2bfb7d1d",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-replay-e4a9c74f40e748f4a591d7bb2bfb7d1d.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 484,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "364efc9e43f592c27c58df2c2e6c3dd63f9fd062af2cc4c738938e871a762873",
+          "parquet_bytes": 7798,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 2.609
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\zone-lookup-276ad80216a04654826c5ba2d1e904da.csv",
+          "parquet_path": null,
+          "status": "ready",
+          "row_count": 265,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+          "columns": [
+            "LocationID",
+            "Borough",
+            "Zone",
+            "service_zone"
+          ]
+        }
+      ],
+      "metrics": {
+        "baseline_rss_bytes": 98304000,
+        "peak_rss_bytes": 129458176,
+        "peak_spill_bytes": 0,
+        "wall_seconds": 5.125
+      },
+      "replay_events": 484,
+      "repeat_replay_match": true
+    },
+    {
+      "run": 5,
+      "entries": [
+        {
+          "dataset_role": "history",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-history-aa4b3965fc7e408cbda26b2bbd4d1cee",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-history-aa4b3965fc7e408cbda26b2bbd4d1cee.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1029,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "03322ed9ec92c642e1cfad39468939d1ad523f723e5b2b363f444d972b7830ec",
+          "parquet_bytes": 12207,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 3.031
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-replay-c98aa7621a41411585d7cc24410c96ff",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-replay-c98aa7621a41411585d7cc24410c96ff.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 484,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "364efc9e43f592c27c58df2c2e6c3dd63f9fd062af2cc4c738938e871a762873",
+          "parquet_bytes": 7798,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 2.734
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\zone-lookup-20e9e4e2e5b64ca98c5742a30d5633ca.csv",
+          "parquet_path": null,
+          "status": "ready",
+          "row_count": 265,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+          "columns": [
+            "LocationID",
+            "Borough",
+            "Zone",
+            "service_zone"
+          ]
+        }
+      ],
+      "metrics": {
+        "baseline_rss_bytes": 98209792,
+        "peak_rss_bytes": 129200128,
+        "peak_spill_bytes": 0,
+        "wall_seconds": 5.907
+      },
+      "replay_events": 484,
+      "repeat_replay_match": true
+    },
+    {
+      "run": 6,
+      "entries": [
+        {
+          "dataset_role": "history",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-history-f21aab732b994ec7b2efc931508de230",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-history-f21aab732b994ec7b2efc931508de230.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1029,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "03322ed9ec92c642e1cfad39468939d1ad523f723e5b2b363f444d972b7830ec",
+          "parquet_bytes": 12207,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 4.391
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-replay-b26fb84f6ffe4b599c1a31268bb4b76b",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-replay-b26fb84f6ffe4b599c1a31268bb4b76b.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 484,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "364efc9e43f592c27c58df2c2e6c3dd63f9fd062af2cc4c738938e871a762873",
+          "parquet_bytes": 7798,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 2.969
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\zone-lookup-8629f924e52746d3a801ac630b0de45f.csv",
+          "parquet_path": null,
+          "status": "ready",
+          "row_count": 265,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+          "columns": [
+            "LocationID",
+            "Borough",
+            "Zone",
+            "service_zone"
+          ]
+        }
+      ],
+      "metrics": {
+        "baseline_rss_bytes": 100438016,
+        "peak_rss_bytes": 131190784,
+        "peak_spill_bytes": 0,
+        "wall_seconds": 7.469
+      },
+      "replay_events": 484,
+      "repeat_replay_match": true
+    },
+    {
+      "run": 7,
+      "entries": [
+        {
+          "dataset_role": "history",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-06T13:00:00+00:00",
+          "range_end": "2025-01-06T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-history-f715b1c809d74a19bf168e58516da34d",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-history-f715b1c809d74a19bf168e58516da34d.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 1029,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "03322ed9ec92c642e1cfad39468939d1ad523f723e5b2b363f444d972b7830ec",
+          "parquet_bytes": 12207,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 2.125
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-20T13:00:00+00:00",
+          "range_end": "2025-01-20T13:15:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-replay-20f025e9e0f54c48b11736d433074367",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-replay-20f025e9e0f54c48b11736d433074367.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 484,
+          "invalid_row_count": 0,
+          "source_file_count": 1,
+          "source_file_rows": 3475226,
+          "parquet_sha256": "364efc9e43f592c27c58df2c2e6c3dd63f9fd062af2cc4c738938e871a762873",
+          "parquet_bytes": 7798,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 2.031
+        },
+        {
+          "dataset_role": "zone_lookup",
+          "source_id": "taxi-zone-lookup",
+          "range_start": null,
+          "range_end": null,
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\zone-lookup-0babf0f05ffb4ab29c4b55ee2707206b.csv",
+          "parquet_path": null,
+          "status": "ready",
+          "row_count": 265,
+          "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+          "columns": [
+            "LocationID",
+            "Borough",
+            "Zone",
+            "service_zone"
+          ]
+        }
+      ],
+      "metrics": {
+        "baseline_rss_bytes": 103047168,
+        "peak_rss_bytes": 132763648,
+        "peak_spill_bytes": 0,
+        "wall_seconds": 4.282
+      },
+      "replay_events": 484,
+      "repeat_replay_match": true
+    }
+  ],
+  "large_runs": [],
+  "status": "failed",
+  "note": "Ingestion run success rate, not individual httpfs request success rate; RSS includes Python/Arrow, memory_limit is DuckDB's buffer budget.",
+  "error": "[{'dataset_role': 'history', 'source_id': 'tlc-yellow-taxi', 'range_start': '2025-01-06T13:00:00+00:00', 'range_end': '2025-01-06T13:15:00+00:00', 'raw_path': 'D:\\\\BigData\\\\nyc-taxi-pipeline\\\\output\\\\tlc-benchmark-2months\\\\raw\\\\tlc-history-07629460ada44e1ca505b82032be7906', 'parquet_path': 'D:\\\\BigData\\\\nyc-taxi-pipeline\\\\output\\\\tlc-benchmark-2months\\\\parquet\\\\tlc-history-07629460ada44e1ca505b82032be7906.parquet', 'input_mode': 'tlc_parquet', 'source_timezone': 'America/New_York', 'status': 'ready', 'coverage_complete': True, 'row_count': 1029, 'invalid_row_count': 0, 'source_file_count': 1, 'source_file_rows': 3475226, 'parquet_sha256': '03322ed9ec92c642e1cfad39468939d1ad523f723e5b2b363f444d972b7830ec', 'parquet_bytes': 12207, 'duckdb_version': '1.5.6', 'elapsed_seconds': 2.078}, {'dataset_role': 'replay', 'source_id': 'tlc-yellow-taxi', 'range_start': '2025-01-20T13:00:00+00:00', 'range_end': '2025-01-20T13:15:00+00:00', 'raw_path': 'D:\\\\BigData\\\\nyc-taxi-pipeline\\\\output\\\\tlc-benchmark-2months\\\\raw\\\\tlc-replay-08bdc6a975784a8581574725d09e5016', 'parquet_path': 'D:\\\\BigData\\\\nyc-taxi-pipeline\\\\output\\\\tlc-benchmark-2months\\\\parquet\\\\tlc-replay-08bdc6a975784a8581574725d09e5016.parquet', 'input_mode': 'tlc_parquet', 'source_timezone': 'America/New_York', 'status': 'failed', 'coverage_complete': False, 'row_count': 0, 'invalid_row_count': 0, 'error': \"HTTP Error: HTTP GET error on 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet' (HTTP 403 Forbidden)\", 'elapsed_seconds': 1.344}, {'dataset_role': 'zone_lookup', 'source_id': 'taxi-zone-lookup', 'range_start': None, 'range_end': None, 'raw_path': 'D:\\\\BigData\\\\nyc-taxi-pipeline\\\\output\\\\tlc-benchmark-2months\\\\raw\\\\zone-lookup-f2a534a71b6a446a88cd5fc1c1fb23d8.csv', 'parquet_path': None, 'status': 'failed', 'error': '403 Client Error: Forbidden for url: https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv'}]",
+  "finished_at": "2026-11-09T19:33:29.868248+00:00"
+}

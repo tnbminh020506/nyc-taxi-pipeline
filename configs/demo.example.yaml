@@ -1,41 +1,7 @@
-# Bước 1.1 và 4.1–4.2 | Nhóm trưởng cùng Chính, Mạnh và Bảo | Cấu hình dùng chung.
-#
-# Đầu vào
-# - NYC Open Data API, dataset Yellow Taxi 2025 đề xuất irx2-vgm4.
-# - Mặc định v2 công khai; v3 cần token và endpoint api/v3/views/irx2-vgm4/query.json.
-# - Biến môi trường chứa app token cho SODA v3, kích thước trang và giới hạn lượt lấy.
-# - Trường API tpep_pickup_datetime và pulocationid, cùng ánh xạ sang schema Parquet đã chốt.
-# - URL hoặc đường dẫn CSV Taxi Zone Lookup. Đây là nguồn tra cứu riêng.
-# - Hai kỳ history/replay không giao nhau và danh sách cửa sổ đã xác nhận độ phủ.
-# - Đường dẫn dùng chung cho JSON gốc, Parquet tạo từ API, manifest, kết quả batch và checkpoint.
-# - Định dạng kết quả batch và cách kết nối phần ghi stream do Mạnh và Bảo thống nhất.
-# - Kafka bootstrap servers, topic taxi-events, replay_id và tốc độ phát.
-# - Cấu hình Spark gồm nhịp trigger và cửa sổ 15 phút. Múi giờ nghiệp vụ America/New_York.
-# - Tham chiếu biến môi trường chứa chuỗi kết nối PostgreSQL.
-#
-# Đầu ra
-# - Một bộ thông số thống nhất cho ingestion, Spark và kho. Các mốc trao đổi có múi giờ.
-# - Mỗi phiên có checkpoint riêng và các vị trí bàn giao mà tiến trình nhận đọc được.
-
-# Khoảng thời gian minh họa, cần nhóm trưởng xác nhận trước lượt demo chính thức.
+# Chính - TLC monthly Parquet via DuckDB; no Socrata token required.
+# Ranges are examples; the team must confirm the final demo periods.
 workspace_root: ..
 source_timezone: America/New_York
-api:
-  version: 2
-  dataset_id: irx2-vgm4
-  endpoint: https://data.cityofnewyork.us/resource/irx2-vgm4.json
-  app_token_env: SOCRATA_APP_TOKEN
-  page_size: 1000
-  max_pages: 100
-  timeout_seconds: 60
-  max_retries: 15
-  request_budget_seconds: 120
-  retry_backoff_seconds: 2
-  retry_backoff_max_seconds: 6
-  min_retry_delay_seconds: 2
-  retry_jitter_seconds: 1
-  min_request_interval_seconds: 1
-  resume: true
 datasets:
   history:
     range_start: '2025-01-06T08:00:00-05:00'
@@ -49,11 +15,21 @@ zone_lookup:
 paths:
   raw: data/raw
   parquet: data/processed
-  manifest: data/manifest.json
+  manifest: data/tlc-manifest.json
 kafka:
   bootstrap_servers: localhost:9092
   topic: taxi-events
   partitions: 1
 replay:
-  replay_id: taxi-demo-001
-  events_per_second: 10  # 0 = không giới hạn tốc độ
+  replay_id: tlc-demo-001
+  events_per_second: 10
+source:
+  kind: tlc_parquet
+  source_id: tlc-yellow-taxi
+  url_template: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{month}.parquet
+duckdb:
+  memory_limit: 512MB
+  threads: 2
+  temp_directory: output/duckdb-temp
+  max_temp_directory_size: 8GB
+  extension_directory: output/duckdb-extensions

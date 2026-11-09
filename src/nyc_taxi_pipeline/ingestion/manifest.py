@@ -1,4 +1,4 @@
-# Bước 1.2 | Chính | Công bố dữ liệu API, Parquet và lookup đã sẵn sàng.
+# Bước 1.2 | Chính | Công bố Parquet TLC/API và lookup đã sẵn sàng.
 #
 # Đầu vào
 # - Kết quả tải API và lưu dữ liệu từ ingest.py, kèm phạm vi đã chốt trong configs/demo.example.yaml.
@@ -6,7 +6,7 @@
 #
 # Đầu ra
 # - Manifest có dataset_role, source_id, raw_path, parquet_path, status, range_start và range_end.
-# - source_id là mã dataset API hoặc định danh nguồn lookup. raw_path trỏ đến thư mục JSON gốc hoặc CSV lookup.
+# - source_id nhận diện TLC/API/lookup. raw_path là provenance TLC, thư mục JSON API hoặc CSV lookup.
 # - parquet_path trỏ đến Parquet của history/replay. Bảo dùng raw_path của zone_lookup tại bước 3.2.
 #
 # Yêu cầu

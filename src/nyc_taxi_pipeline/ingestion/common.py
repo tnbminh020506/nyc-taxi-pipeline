@@ -3,6 +3,7 @@
 import json
 import math
 import os
+import re
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -57,6 +58,12 @@ def resolve_path(config, value):
     return path.resolve() if path.is_absolute() else (config["_root"] / path).resolve()
 
 
+def dataset_source_id(config):
+    if config.get("source", {}).get("kind", "api") == "tlc_parquet":
+        return config["source"].get("source_id", "tlc-yellow-taxi")
+    return config["api"]["dataset_id"]
+
+
 def load_config(path):
     path = Path(path).resolve()
     with path.open(encoding="utf-8") as handle:
@@ -74,6 +81,19 @@ def load_config(path):
         ranges.append((start, end))
     if max(ranges[0][0], ranges[1][0]) < min(ranges[0][1], ranges[1][1]):
         raise ValueError("history and replay must not overlap")
+    kind = config.get("source", {}).get("kind", "api")
+    if kind not in ("api", "tlc_parquet"):
+        raise ValueError("source.kind must be api or tlc_parquet")
+    if kind == "tlc_parquet":
+        if config.get("source_timezone", "America/New_York") != "America/New_York":
+            raise ValueError("TLC timestamps must use source_timezone America/New_York")
+        settings = config.get("duckdb", {})
+        for key, default in (("memory_limit", "512MB"), ("max_temp_directory_size", "8GB")):
+            if not re.fullmatch(r"[1-9][0-9]*(?:MB|GB)", str(settings.get(key, default))):
+                raise ValueError(f"duckdb.{key} must be a positive integer in MB or GB")
+        threads = settings.get("threads", 2)
+        if isinstance(threads, bool) or not isinstance(threads, int) or not 1 <= threads <= 32:
+            raise ValueError("duckdb.threads must be an integer from 1 to 32")
     api = config.get("api", {})
     if api.get("version", 3) not in (2, 3):
         raise ValueError("api.version must be 2 or 3")

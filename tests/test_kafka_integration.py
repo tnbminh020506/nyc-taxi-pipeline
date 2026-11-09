@@ -4,6 +4,7 @@ import json
 import os
 import time
 import uuid
+from datetime import datetime
 
 import pytest
 
@@ -13,11 +14,19 @@ from nyc_taxi_pipeline.ingestion.replay import ensure_topic, iter_events, send_e
 
 @pytest.mark.kafka
 @pytest.mark.skipif(not os.environ.get("KAFKA_BOOTSTRAP_SERVERS"), reason="No Kafka broker configured")
-def test_real_kafka_roundtrip(config):
+@pytest.mark.parametrize("backend", ["api", "tlc_parquet"])
+def test_real_kafka_roundtrip(config, backend):
     from kafka import KafkaConsumer, KafkaProducer, TopicPartition
     from kafka.admin import KafkaAdminClient
 
     servers = os.environ["KAFKA_BOOTSTRAP_SERVERS"]
+    if backend == "tlc_parquet":
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        path = config["_root"] / "yellow_tripdata_2025-01.parquet"
+        pq.write_table(pa.table({"tpep_pickup_datetime": [datetime(2025, 1, 20, 8, minute) for minute in (1, 5, 14, 15)],
+                                "PULocationID": [161] * 4}), path)
+        config["source"] = {"kind": "tlc_parquet", "files": {"2025-01": str(path)}}
     topic = "taxi-ingestion-test-" + uuid.uuid4().hex
     ensure_topic(servers, topic)
     producer = KafkaProducer(bootstrap_servers=servers, acks="all")

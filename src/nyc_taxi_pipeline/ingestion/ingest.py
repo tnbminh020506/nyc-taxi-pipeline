@@ -384,7 +384,7 @@ def ingest_lookup(config, session):
     try:
         source = section["source"]
         if source.startswith(("https://", "http://")):
-            response = session.get(source, timeout=config["api"].get("timeout_seconds", 30))
+            response = session.get(source, timeout=config.get("api", {}).get("timeout_seconds", 30))
             response.raise_for_status()
             content = response.content
         else:
@@ -412,6 +412,11 @@ def ingest_lookup(config, session):
 
 
 def run_ingestion(config, roles=("history", "replay", "zone_lookup")):
+    if config.get("source", {}).get("kind", "api") == "tlc_parquet":
+        from .tlc import ingest_tlc
+        with http_session(config.get("api")) as session:
+            return [ingest_lookup(config, session) if role == "zone_lookup" else ingest_tlc(config, role)
+                    for role in roles]
     with http_session(config.get("api")) as session:
         return [ingest_lookup(config, session) if role == "zone_lookup" else ingest_trips(config, role, session)
                 for role in roles]

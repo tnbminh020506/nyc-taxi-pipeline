@@ -6,7 +6,7 @@
 #
 # Đầu ra
 # - JSON trên taxi-events gồm replay_id, event_id, pickup_at, pickup_zone_id và source_file.
-# - source_file nhận diện file Parquet replay để có thể tra ngược về phản hồi API qua manifest.
+# - source_file nhận diện Parquet replay, tra ngược về provenance TLC/JSON API qua manifest.
 # - Log số dòng đã đọc, số sự kiện đã gửi và lỗi theo file hoặc dòng.
 #
 # Yêu cầu
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from .common import aware_time, resolve_path
+from .common import aware_time, dataset_source_id, resolve_path
 from .ingest import file_sha256
 from .manifest import entry_key, read_manifest
 
@@ -37,7 +37,7 @@ LOG = logging.getLogger(__name__)
 
 def replay_entries(config):
     section = config["datasets"]["replay"]
-    key = entry_key({"dataset_role": "replay", "source_id": config["api"]["dataset_id"], **section})
+    key = entry_key({"dataset_role": "replay", "source_id": dataset_source_id(config), **section})
     manifest = read_manifest(resolve_path(config, config["paths"]["manifest"]))
     entries = [entry for entry in manifest["datasets"]
                if entry["dataset_role"] == "replay" and entry_key(entry) == key and entry["status"] == "ready"]

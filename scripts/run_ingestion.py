@@ -1,13 +1,13 @@
 # Bước 1.1–1.2 | Chính | Điểm chạy nhập dữ liệu.
 #
 # Đầu vào
-# - Cấu hình NYC Open Data API, nguồn CSV lookup, hai kỳ dữ liệu và đường dẫn raw/Parquet/manifest.
+# - Cấu hình DuckDB/TLC (hoặc API cũ), nguồn CSV lookup, hai kỳ và đường dẫn raw/Parquet/manifest.
 #
 # Đầu ra
-# - Phản hồi JSON và CSV lookup nguyên bản, Parquet dẫn xuất, manifest và log số trang, số dòng, lỗi.
+# - Provenance nguồn TLC, CSV lookup, Parquet, manifest và log số dòng/lỗi (API cũ giữ JSON).
 #
 # Yêu cầu
-# - Nối ingestion/ingest.py với ingestion/manifest.py. Tóm tắt kết quả theo file cho nhóm.
+# - Chọn backend tlc.py/API trong ingest.py và công bố qua manifest.py.
 
 import argparse
 import json
@@ -22,7 +22,7 @@ from nyc_taxi_pipeline.ingestion.ingest import run_ingestion
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Fetch taxi API pages, build Parquet and publish a manifest")
+    parser = argparse.ArgumentParser(description="Read TLC Parquet with DuckDB and publish a manifest (legacy API supported)")
     parser.add_argument("--config", default="configs/demo.example.yaml")
     parser.add_argument("--role", choices=("all", "history", "replay", "zone_lookup"), default="all")
     parser.add_argument("--no-resume", action="store_true", help="Fetch every page again, ignoring partial attempts")
@@ -32,7 +32,7 @@ def main():
         roles = ("history", "replay", "zone_lookup") if args.role == "all" else (args.role,)
         config = load_config(args.config)
         if args.no_resume:
-            config["api"]["resume"] = False
+            config.setdefault("api", {})["resume"] = False
         results = run_ingestion(config, roles)
         print(json.dumps(results, ensure_ascii=False, indent=2))
         return 0 if all(result["status"] == "ready" for result in results) else 1

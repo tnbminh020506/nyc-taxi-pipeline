@@ -1,2 +1,4 @@
 -r requirements-ingestion.txt
 pytest>=8,<10
+psutil>=7,<8
+numpy>=1.26,<3

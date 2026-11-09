@@ -1,3 +1,5 @@
+> Báo cáo lịch sử API. Từ 10/11/2026 hướng chính chuyển sang [DuckDB/TLC](ingestion.md) theo nhóm trưởng; kết quả dưới đây không phải nghiệm thu nguồn mới.
+
 # Kiểm tra độ ổn định NYC API — 09/11/2026
 
 ## Định nghĩa trước khi chạy nghiệm thu
@@ -127,7 +129,7 @@ nghiệm thu là GitHub Actions → tải artifact → kiểm tra/import → rep
 ## Mẫu tải dùng thực tế với trang lớn hơn
 
 [Mẫu demo 15 phút](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42642938761),
-`configs/demo.example.yaml`, page_size=1000, cả hai kỳ 08:00–08:15 giờ New York:
+`configs/api-demo.example.yaml`, page_size=1000, cả hai kỳ 08:00–08:15 giờ New York:
 
 - History 06/01/2025: **1.029 dòng**, 2 trang; replay 20/01/2025: **484 dòng**, 1 trang.
 - Lookup 265 vùng. Hai COUNT(*) khớp Parquet; không có dòng lỗi, tạo 484 event replay.

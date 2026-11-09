@@ -1,10 +1,12 @@
 # Hướng dẫn triển khai pipeline taxi NYC
 
+> Cập nhật 10/11/2026 theo nhóm trưởng: bước 1.1 của Chính chuyển sang DuckDB đọc Parquet trực tiếp từ TLC vì API nguồn đang lỗi. JSON API cũ được giữ làm fixture/lịch sử kiểm thử; không còn yêu cầu gọi v2/v3 cho luồng mặc định.
+
 ## Tổng quan luồng quy trình
 
 Demo trả lời câu hỏi **“Khu vực nào ghi nhận nhiều chuyến đón khách hơn mức lịch sử trong cùng khung 15 phút?”**
 
-Hệ thống lấy dữ liệu chuyến đi Yellow Taxi từ **NYC Open Data API**. Tầng **ingestion** lưu phản hồi gốc và tạo hai tập Parquet từ hai khoảng thời gian đã chọn, gồm tập lịch sử và tập phát lại.
+Hệ thống lấy dữ liệu Yellow Taxi từ **file Parquet tháng của TLC qua DuckDB**. Tầng **ingestion** lọc hai khoảng thời gian đã chọn, tạo Parquet lịch sử/phát lại và lưu provenance nguồn để đối chiếu.
 
 Tầng **processing** dùng Spark Batch để tính số chuyến đón khách trung bình theo khu vực, thứ trong tuần và khung 15 phút. Với tập phát lại, Python tạo các sự kiện đón khách và gửi dần qua Kafka. Spark Structured Streaming đọc các sự kiện đó để đếm số chuyến theo khu vực trong từng cửa sổ 15 phút.
 
@@ -12,9 +14,9 @@ Tầng **data warehouse** lưu kết quả tổng hợp của hai nhánh vào c�
 
 ```mermaid
 flowchart TD
-    TLC["NYC Open Data API · Yellow Taxi"]
-    TLC --> SOURCE["1.1 · Gọi API theo khoảng thời gian"]
-    SOURCE --> RAW["1.2 · Lưu phản hồi gốc, tạo Parquet và manifest"]
+    TLC["TLC Parquet tháng · Yellow Taxi"]
+    TLC --> SOURCE["1.1 · DuckDB đọc và lọc Parquet HTTPS"]
+    SOURCE --> RAW["1.2 · Lưu provenance, Parquet và manifest"]
 
     RAW -->|"Chuyến đi lịch sử"| BATCH["2.2 · Spark Batch"]
     RAW -->|"Chuyến đi dành cho phát lại"| REPLAY["1.3 · Python Replay"]
@@ -34,30 +36,30 @@ flowchart TD
 
 | Phần | Phụ trách | Kết quả cần bàn giao |
 | --- | --- | --- |
-| 1. Data Ingestion | Chính | Phản hồi API gốc, Parquet cho hai tập, manifest và sự kiện phát lại qua Kafka |
+| 1. Data Ingestion | Chính | Provenance TLC, Parquet cho hai tập, manifest và sự kiện phát lại qua Kafka |
 | 2. Data Processing | Mạnh | Mức lịch sử từ batch và số chuyến từ stream |
 | 3. Data Warehouse | Bảo | Các bảng PostgreSQL, cách nạp và truy vấn demo |
 | 4. Kiểm tra toàn tuyến | Nhóm trưởng cùng ba thành viên | Bộ mẫu chung, kết quả đối chiếu và hướng dẫn chạy |
 
 ## 1. Data Ingestion — Chính
 
-**Mục tiêu giai đoạn.** Đưa dữ liệu từ NYC Open Data API vào workspace dưới dạng mà hai nhánh xử lý có thể dùng được. Chính lấy đúng các khoảng thời gian nhóm đã chốt, lưu lại phản hồi để đối chiếu, tạo Parquet và ghi rõ từng tập trong manifest. Với tập replay, Chính còn phụ trách phát các sự kiện pickup qua Kafka để Mạnh có thể đọc dần.
+**Mục tiêu giai đoạn.** Đưa dữ liệu TLC vào workspace bằng DuckDB để hai nhánh xử lý dùng được. Chính lấy đúng các khoảng nhóm chốt, ghi thông tin nguồn để đối chiếu, tạo Parquet và manifest. Với tập replay, Chính phát sự kiện pickup qua Kafka cho Mạnh đọc dần.
 
-### 1.1. Lấy dữ liệu chuyến đi qua NYC Open Data API
+### 1.1. Dùng DuckDB lấy trực tiếp Parquet TLC
 
-- **Mục đích.** Lấy các bản ghi chuyến đi từ nguồn API theo hai khoảng thời gian mà demo cần.
-- **Đầu vào.** Endpoint SODA và mã dataset. Mẫu đề xuất là **2025 Yellow Taxi Trip Data (`irx2-vgm4`)**. Nhóm trưởng chọn hai khoảng không giao nhau cho `history` và `replay`. Dùng biến môi trường cho app token khi gọi SODA v3.
-- **Việc cần làm.** Lọc theo `tpep_pickup_datetime` trong từng khoảng `[bắt đầu, kết thúc)`, lấy ít nhất `tpep_pickup_datetime` và `pulocationid`, phân trang với thứ tự ổn định và ghi số trang, số dòng và lỗi. Nếu chạm giới hạn lấy dữ liệu trước khi đọc hết phạm vi, ghi rõ là tập chưa đầy đủ.
-- **Đầu ra.** Các trang JSON gốc, thông tin dataset, bộ lọc, vai trò từng tập và trạng thái tải để bàn giao cho bước 1.2.
+- **Mục đích.** Thay việc gọi API đang lỗi bằng đọc file tháng từ nguồn TLC chính thức.
+- **Đầu vào.** URL HTTPS Parquet Yellow Taxi theo tháng, trường `tpep_pickup_datetime` và `PULocationID`; hai khoảng không giao nhau cho `history` và `replay`, do nhóm trưởng chốt. Không cần app token.
+- **Việc cần làm.** DuckDB đọc các tháng giao với kỳ, lọc pickup theo `[bắt đầu,kết thúc)`, chọn cột cần thiết và COPY trực tiếp ra Parquet với giới hạn bộ nhớ/đĩa tạm. Ghi số file, số dòng và lỗi; chỉ hoàn tất khi đọc được mọi file cần thiết. Kiểm thử cả dữ liệu lớn thực và chạy lặp lại.
+- **Đầu ra.** Hai tập Parquet, danh sách file nguồn/bộ lọc, số liệu đối chiếu và trạng thái để bàn giao bước 1.2.
 
-[Dataset Yellow Taxi 2025](https://data.cityofnewyork.us/Transportation/2025-Yellow-Taxi-Trip-Data/irx2-vgm4/about_data) · [Tài liệu endpoint SODA](https://dev.socrata.com/docs/endpoints.html).
+[Nguồn TLC chính thức](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) · [DuckDB đọc Parquet](https://duckdb.org/docs/stable/data/parquet/overview).
 
-### 1.2. Lưu phản hồi gốc, tạo Parquet và lập manifest
+### 1.2. Lưu provenance, Parquet và lập manifest
 
-- **Mục đích.** Giữ dữ liệu API để đối chiếu, đồng thời tạo đầu vào đọc được cho batch và replay.
-- **Đầu vào.** JSON và thông tin tải từ bước 1.1, cùng CSV Taxi Zone Lookup.
-- **Việc cần làm.** Lưu các trang JSON và CSV lookup nguyên bản. Tạo Parquet riêng cho `history` và `replay` theo schema đã thống nhất. Manifest ghi mã nguồn, vai trò, khoảng thời gian, `raw_path`, `parquet_path` nếu có và trạng thái. Chỉ công bố `ready` khi đã tải đủ phạm vi và file đầu ra đã hoàn chỉnh.
-- **Đầu ra.** `raw_path` trỏ đến phản hồi gốc hoặc CSV lookup. `parquet_path` trỏ đến Parquet `history` cho bước 2.2 hoặc Parquet `replay` cho bước 1.3. Bảo dùng mục `zone_lookup` ở bước 3.2.
+- **Mục đích.** Tạo đầu vào cục bộ đọc được cho batch/replay và lưu dấu vết nguồn để kiểm tra.
+- **Đầu vào.** Kết quả DuckDB từ 1.1 và CSV Taxi Zone Lookup.
+- **Việc cần làm.** Lưu `source.json` mô tả URL/đường dẫn tháng, SQL, phạm vi, phiên bản và checksum đầu ra; lưu CSV lookup nguyên bản. Không yêu cầu JSON chuyến gốc vì nguồn mới là Parquet. Manifest giữ schema đã thống nhất, ghi vai trò, nguồn, khoảng thời gian, `raw_path`, `parquet_path` và trạng thái. Chỉ công bố `ready` khi đọc hết các file tháng đã chọn và ghi xong Parquet.
+- **Đầu ra.** `raw_path` của chuyến đi trỏ đến thư mục provenance, không giả định đã lưu toàn bộ file tháng gốc. `parquet_path` đưa history sang 2.2 và replay sang 1.3. Bảo nhận CSV qua `zone_lookup`. Giới hạn độ phủ của file tháng, quy tắc DST và cách giữ nguồn đầy đủ được ghi trong [hợp đồng ingestion](../ingestion.md).
 
 ### 1.3. Đọc lại chuyến đi và tạo sự kiện đón khách
 
@@ -80,7 +82,7 @@ flowchart TD
 ### 2.1. Thống nhất quy tắc thời gian và dữ liệu
 
 - **Mục đích.** Để số chuyến trong hai nhánh được tính theo cùng cách.
-- **Đầu vào.** Schema Parquet, JSON sự kiện mẫu và khoảng thời gian từ Chính. Đối chiếu ánh xạ từ các trường API `tpep_pickup_datetime` và `pulocationid` sang thời điểm đón và mã vùng chuẩn.
+- **Đầu vào.** Schema Parquet, JSON sự kiện mẫu và khoảng thời gian từ Chính. Đối chiếu ánh xạ từ các cột TLC `tpep_pickup_datetime` và `PULocationID` (giá trị raw xuất thành `pulocationid`) sang thời điểm đón và mã vùng chuẩn.
 - **Việc cần làm.** Chuẩn hóa thời điểm đón và mã khu vực. Dùng giờ New York (`America/New_York`) để xác định thứ và khung 15 phút. Dùng timestamp có múi giờ khi gửi hoặc lưu. Quy ước cửa sổ gồm mốc bắt đầu và loại mốc kết thúc, nên chuyến đúng 08:15 thuộc khung 08:15–08:30. Ghi nhận và loại khỏi phép đếm bản ghi thiếu thời điểm đón hoặc có mã vùng sai định dạng.
 - **Đầu ra.** Bộ quy tắc và cách ghi số liệu kiểm tra chất lượng dùng chung cho 2.2 và 2.3. Nhịp đọc dữ liệu của Spark được cấu hình riêng với độ dài cửa sổ 15 phút.
 
@@ -132,11 +134,11 @@ flowchart TD
 - **Việc cần làm.** Chuẩn bị Kafka và các bảng PostgreSQL. Nhập JSON mẫu và tạo Parquet, chạy batch, khởi động stream rồi phát sự kiện. Cuối cùng chạy SQL với mã phiên và cửa sổ muốn xem.
 - **Đầu ra.** Mức lịch sử là **2 chuyến** trên hai cửa sổ. Stream ghi **3 chuyến** trong khung 08:00–08:15 và **1 chuyến** trong khung 08:15–08:30. SQL cho vùng A ở khung đầu trả **3 chuyến**, mức lịch sử **2**, chênh lệch **+50%**.
 
-### 4.2. Chạy lại với dữ liệu lấy qua NYC Open Data API và bàn giao
+### 4.2. Chạy lại với dữ liệu TLC qua DuckDB và bàn giao
 
 - **Mục đích.** Xác nhận hệ thống có thể nhận dữ liệu nguồn đã chọn và tạo bảng phân tích.
-- **Đầu vào.** Pipeline đã qua 4.1, cấu hình API, lookup và phạm vi lịch sử/replay do nhóm trưởng chốt.
+- **Đầu vào.** Pipeline đã qua 4.1, cấu hình DuckDB/TLC, lookup và phạm vi lịch sử/replay do nhóm trưởng chốt.
 - **Việc cần làm.** Chạy toàn tuyến với dữ liệu đã chốt. Mỗi người ghi lệnh chạy, đường dẫn mã, đầu vào, đầu ra thực tế và phần còn vướng. Ba thành viên có thể làm song song từ bộ mẫu 4.1 sau khi thống nhất schema file, JSON và bảng kết quả.
-- **Đầu ra.** Một lượt chạy có thể lặp lại, ghi rõ mã dataset, bộ lọc API, kỳ lịch sử, kỳ replay và kết quả SQL. Nếu mới chạy được bộ mẫu kiểm tra, ghi riêng trạng thái của lượt lấy dữ liệu từ API.
+- **Đầu ra.** Một lượt chạy có thể lặp lại, ghi rõ file tháng/nguồn TLC, bộ lọc SQL, kỳ lịch sử, kỳ replay và kết quả SQL. Ghi riêng kết quả fixture, ingestion dữ liệu lớn và nghiệm thu toàn tuyến.
 
 Tài liệu tham khảo cho dữ liệu nguồn, bộ mẫu và báo cáo bàn giao. [NYC TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) · [Đặc tả bộ mẫu](../../data/fixtures/README.md) · [Báo cáo MVP](../mvp-report.md).

@@ -11,7 +11,7 @@ on:
       config_file:
         description: 'Small smoke sample or the aligned 15-minute demo sample'
         type: choice
-        options: ['configs/api-smoke.yaml', 'configs/demo.example.yaml']
+        options: ['configs/api-smoke.yaml', 'configs/api-demo.example.yaml']
         default: 'configs/api-smoke.yaml'
 
 permissions:
