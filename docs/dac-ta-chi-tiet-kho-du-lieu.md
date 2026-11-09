@@ -102,3 +102,4 @@ Các bảng này được thiết kế để:
    - `idx_historical_baseline_weekday_slot` trên `(iso_weekday, slot_15m)`: Tối ưu JOIN với bảng baseline.
 4. **Cơ chế nạp chống trùng (Idempotent):**
    - Khi nạp lại cùng dữ liệu hoặc khi Spark gửi lại cùng micro-batch, hệ thống dùng cơ chế `UPSERT` (`ON CONFLICT DO UPDATE`) để cập nhật số chuyến mới mà không sinh dòng trùng lặp.
+
