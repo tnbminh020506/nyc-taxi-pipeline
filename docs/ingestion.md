@@ -50,6 +50,8 @@ source:
     '2025-02': output/tlc-source-cache/yellow_tripdata_2025-02.parquet
 ```
 
+CDN TLC có thể trả 403 từ một số mạng; [báo cáo đã ghi cả lượt lỗi và lượt đạt](duckdb-validation.md). Với bản nguồn đã cache, đặt thêm `zone_lookup.source` thành đường dẫn CSV cục bộ để không gọi mạng. Không suy ra rằng thay API bằng DuckDB sẽ tự sửa mọi HTTP 403.
+
 Khi có `files`, mọi tháng cần dùng phải được khai báo và có file hợp lệ; không fallback về mạng. `source_id` phải đổi nếu chuyển sang một nguồn khác. Schema nguồn phải có timestamp địa phương không timezone và mã vùng dạng integer; một tháng sai schema làm thất bại cả kỳ.
 
 ## 3. Hợp đồng bàn giao
@@ -145,7 +147,7 @@ ra +50% cần nghiệm thu tiếp khi ghép phần của Mạnh/Bảo.
 .\.venv\Scripts\python.exe scripts/benchmark_tlc.py --months 12 --large-repeats 1 --small-repeats 0 --report output/tlc-year.json
 ```
 
-Benchmark tải bản gốc từng tháng vào `output/tlc-source-cache`, rồi ingestion **vẫn đọc URL HTTPS** để xuất hàng triệu dòng. PyArrow đọc cache theo batch 65.536 dòng, độc lập đối chiếu từng vị trí dòng nguồn, UTC pickup, mã vùng và cờ hợp lệ với toàn bộ đầu ra. So hash nội dung đã sắp theo vị trí vật lý, không chỉ so `COUNT(*)`. Lặp lại kiểm tra checksum Parquet và `event_id` trên cùng bộ replay nhỏ. Không phát hàng chục triệu message Kafka trong bài benchmark ingestion.
+Chế độ mặc định là `--source-mode remote`; có thể chọn `--source-mode local --small-repeats 0` để đo riêng bản nguồn đã cache, report phân biệt rõ hai chế độ. Benchmark tải bản gốc từng tháng vào `output/tlc-source-cache`, rồi ingestion **vẫn đọc URL HTTPS** để xuất hàng triệu dòng. PyArrow đọc cache theo batch 65.536 dòng, độc lập đối chiếu từng vị trí dòng nguồn, UTC pickup, mã vùng và cờ hợp lệ với toàn bộ đầu ra. So hash nội dung đã sắp theo vị trí vật lý, không chỉ so `COUNT(*)`. Lặp lại kiểm tra checksum Parquet và `event_id` trên cùng bộ replay nhỏ. Không phát hàng chục triệu message Kafka trong bài benchmark ingestion.
 
 JSON báo cáo chứa thời gian, RSS, spill, số dòng/file và digest đối chiếu; lỗi vẫn ghi báo cáo và trả exit code 1. [Kết quả đo thực tế](duckdb-validation.md). CI chạy unit trên Windows/Ubuntu, Kafka thật cho hai backend và bài hai tháng TLC qua HTTPS trên Ubuntu; báo cáo mạng được lưu làm artifact.
 
