@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 import os
 import random
 import statistics
@@ -39,6 +40,8 @@ def probe(session, method, endpoint, label, **kwargs):
         result.update(status=response.status_code, content_type=response.headers.get("Content-Type"),
                       bytes=len(response.content), server=response.headers.get("Server"),
                       retry_after=response.headers.get("Retry-After"),
+                      cache_control=response.headers.get("Cache-Control"),
+                      age=response.headers.get("Age"), x_cache=response.headers.get("X-Cache"),
                       request_id=response.headers.get("X-Socrata-RequestId"))
         try:
             body = response.json()
@@ -51,7 +54,9 @@ def probe(session, method, endpoint, label, **kwargs):
             if body and "total" in body[0]:
                 result["total"] = int(body[0]["total"])
         else:
-            result["body_preview"] = response.text[:700]
+            preview = response.text
+            token = kwargs.get("headers", {}).get("X-App-Token")
+            result["body_preview"] = (preview.replace(token, "[REDACTED]") if token else preview)[:700]
     except requests.RequestException as error:
         result.update(success=False, error=type(error).__name__)
     result["seconds"] = round(time.monotonic() - started, 3)
@@ -59,47 +64,51 @@ def probe(session, method, endpoint, label, **kwargs):
     return result
 
 
-def run(config, rounds, output):
+def run(config, rounds, output, comparison="query"):
     target = resolve_path(config, output)
     report = {"started_at": datetime.now(timezone.utc).isoformat(), "rounds": rounds,
-              "dataset": config["api"]["dataset_id"], "requests": [], "summary": {}}
+              "dataset": config["api"]["dataset_id"], "requests": [], "summary": {},
+              "comparison": comparison}
     dataset = config["api"]["dataset_id"]
     endpoint = f"https://data.cityofnewyork.us/resource/{dataset}.json"
     token = os.environ.get(config["api"].get("app_token_env", "SOCRATA_APP_TOKEN"))
     headers = {"X-App-Token": token} if token else {}
     report["token_present"] = bool(token)
     with requests.Session() as session:
-        v3 = probe(session, "POST", f"https://data.cityofnewyork.us/api/v3/views/{dataset}/query.json",
-                   "v3", headers=headers, json={"query": "SELECT tpep_pickup_datetime, pulocationid",
-                   "page": {"pageNumber": 1, "pageSize": 1}, "includeSynthetic": False})
-        report["v3"] = v3
+        if comparison == "query":
+            report["v3"] = probe(session, "POST", f"https://data.cityofnewyork.us/api/v3/views/{dataset}/query.json",
+                       "v3", headers=headers, json={"query": "SELECT tpep_pickup_datetime, pulocationid",
+                       "page": {"pageNumber": 1, "pageSize": 1}, "includeSynthetic": False})
         write_json(target, report)
         jobs = []
         for role in ("history", "replay"):
             query = query_for_range(config["datasets"][role], config["source_timezone"])
             count = "SELECT count(*) AS total " + query[query.index("WHERE "):query.index("ORDER BY")].strip()
             for kind, statement in (("page", query), ("count", count)):
-                for style in ("query", "parameters"):
+                for style in (("query", "parameters") if comparison == "query" else ("keepalive", "close")):
                     jobs.append((f"{style}/{role}/{kind}", statement, style))
         for round_number in range(1, rounds + 1):
             shuffled = jobs[:]
             random.Random(round_number).shuffle(shuffled)
             for label, query, style in shuffled:
-                params = ({"$query": f"{query} LIMIT 20 OFFSET 0"} if style == "query"
+                params = ({"$query": f"{query} LIMIT 20 OFFSET 0"} if style != "parameters"
                           else split_params(query, 20))
-                result = probe(session, "GET", endpoint, label, params=params, headers=headers)
+                request_headers = dict(headers)
+                if comparison == "connection":
+                    request_headers["Connection"] = "close" if style == "close" else "keep-alive"
+                result = probe(session, "GET", endpoint, label, params=params, headers=request_headers)
                 result["round"] = round_number
                 report["requests"].append(result)
                 write_json(target, report)
                 time.sleep(1)
-        for style in ("query", "parameters"):
+        for style in (("query", "parameters") if comparison == "query" else ("keepalive", "close")):
             records = [r for r in report["requests"] if r["label"].startswith(style + "/")]
             elapsed = sorted(r["seconds"] for r in records)
             report["summary"][style] = {
                 "attempts": len(records), "successes": sum(r["success"] for r in records),
                 "statuses": dict(Counter(str(r.get("status", r.get("error"))) for r in records)),
                 "median_seconds": round(statistics.median(elapsed), 3),
-                "p95_seconds": elapsed[min(len(elapsed) - 1, int(len(elapsed) * .95))],
+                "p95_seconds": elapsed[max(0, math.ceil(len(elapsed) * .95) - 1)],
             }
     report["finished_at"] = datetime.now(timezone.utc).isoformat()
     write_json(target, report)
@@ -111,5 +120,6 @@ if __name__ == "__main__":
     parser.add_argument("--config", default="configs/api-smoke.yaml")
     parser.add_argument("--rounds", type=int, choices=range(1, 11), default=5)
     parser.add_argument("--output", default="output/api-reliability/probe.json")
+    parser.add_argument("--comparison", choices=("query", "connection"), default="query")
     args = parser.parse_args()
-    run(load_config(args.config), args.rounds, args.output)
+    run(load_config(args.config), args.rounds, args.output, args.comparison)

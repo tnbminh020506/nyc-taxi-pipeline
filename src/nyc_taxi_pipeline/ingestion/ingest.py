@@ -100,6 +100,8 @@ class GentleRetry(Retry):
 def http_session(api=None):
     api = api or {}
     session = MeasuredSession(api.get("_request_metrics"), api.get("min_request_interval_seconds", 0))
+    if api.get("connection_close", False):
+        session.headers["Connection"] = "close"
     retries = GentleRetry(total=api.get("max_retries", 3),
                     min_delay=api.get("min_retry_delay_seconds", 0),
                     backoff_factor=api.get("retry_backoff_seconds", 0.5),

@@ -79,6 +79,8 @@ def load_config(path):
         raise ValueError("api.version must be 2 or 3")
     if not isinstance(api.get("resume", True), bool):
         raise ValueError("api.resume must be true or false")
+    if not isinstance(api.get("connection_close", False), bool):
+        raise ValueError("api.connection_close must be true or false")
     for name, default in (("page_size", 1000), ("max_pages", 100), ("timeout_seconds", 30)):
         value = api.get(name, default)
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
