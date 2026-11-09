@@ -167,6 +167,46 @@ CI `.github/workflows/ingestion.yml` chạy unit/HTTP/CLI trên Windows và Ubun
 và một job Kafka thật trên Ubuntu. Việc Spark khử trùng, nạp PostgreSQL và SQL
 ra +50% cần nghiệm thu tiếp khi ghép phần của Mạnh/Bảo.
 
+## Nghiệm thu riêng với API thật
+
+```powershell
+.\.venv\Scripts\python.exe scripts/test_live_api.py --api-version 2
+```
+
+`configs/api-smoke.yaml` dùng hai khoảng một phút, `page_size=100`, tối đa 20
+trang mỗi kỳ. Đây là phép thử kết nối/nhập liệu, không phải kỳ baseline đủ cho
+demo 15 phút. Script từ chối fixture, tải lookup qua HTTPS, so khớp số dòng JSON,
+Parquet và truy vấn `COUNT(*)` độc lập, rồi tạo JSONL replay từ dữ liệu thật.
+Chỉ `passed` khi cả hai kỳ có dữ liệu, tải đủ, số dòng khớp và replay khớp số
+dòng hợp lệ. Báo cáo: `output/api-smoke/report.json`; trạng thái lỗi vẫn được lưu.
+
+Nếu máy hiện tại nhận HTTP 403, có thể chạy phép thử trên GitHub-hosted runner
+để so sánh môi trường truy cập, không thay đổi endpoint của dự án:
+
+```powershell
+gh workflow run live-api.yml --ref demo/ingestion -f api_version=2
+```
+
+Workflow `Live NYC API acceptance` lưu artifact gồm JSON gốc, query, Parquet,
+manifest và báo cáo, kể cả khi kiểm tra thất bại. Artifact giữ 7 ngày. Đường dẫn
+trong manifest của runner là đường dẫn Linux; cần ánh xạ lại trước khi đọc trên
+máy khác. SODA v2 được chọn tường minh cho phép thử này; default demo vẫn là v3.
+
+Để thử **SODA v3**, cần tài khoản Socrata và app token của chính người chạy:
+
+1. Theo [hướng dẫn chính thức tạo App Token](https://support.socrata.com/hc/en-us/articles/210138558-Generating-App-Tokens-and-API-Keys), đăng nhập tài khoản Data & Insights, mở **Developer Settings → Create New App Token**. Tài liệu cho phép thao tác từ một domain Data & Insights khác như [Evergreen](https://evergreen.data.socrata.com/) nếu trang NYC không truy cập được.
+2. Cấu hình token trong phiên PowerShell 7, không đưa vào chat hay YAML:
+
+   ```powershell
+   $env:SOCRATA_APP_TOKEN = Read-Host 'Socrata app token' -MaskInput
+   .\.venv\Scripts\python.exe scripts/test_live_api.py --api-version 3
+   ```
+
+3. Để chạy v3 trên Actions, chủ repo cấu hình repository secret `SOCRATA_APP_TOKEN`, rồi chọn `api_version=3` khi chạy workflow. Không có token thì lượt v3 thất bại rõ ràng; không tự chuyển sang v2.
+
+Token không đảm bảo sửa được mọi HTTP 403. Phân biệt kết quả v2/v3 và máy chạy
+trong báo cáo; một lượt v2 thành công không chứng minh v3 đã được nghiệm thu.
+
 ## Tài liệu giao thức
 
 - [Socrata SODA3: query và phân trang](https://dev.socrata.com/docs/queries/)

@@ -24,6 +24,29 @@ Nhóm trưởng ghi dataset và bộ lọc API, số trang và số dòng, Zone 
 - Hướng dẫn và hợp đồng: [docs/ingestion.md](ingestion.md). Kafka độc lập: `docker-compose.ingestion.yml`.
 - Bộ mẫu: `python scripts/run_ingestion.py --config configs/fixture.yaml` tạo history 4 dòng (1 + 3 chuyến ở hai cửa sổ), replay 4 dòng, lookup 1 vùng (161), ba mục manifest `ready`.
 - `python scripts/replay_taxi_stream.py --config configs/fixture.yaml --dry-run --output output/fixture-events.jsonl` tạo 4 sự kiện, đúng thứ tự 08:01, 08:05, 08:14, 08:15 giờ New York.
-- Kiểm thử cục bộ: `python -m pytest -q` đạt 27 ca, 1 ca Kafka skip vì máy chưa có broker. Có ca HTTP v3 phân trang, v2 cấu hình tường minh, retry 429, thiếu trang, giới hạn lượt tải, dữ liệu lỗi, gửi trùng và kiểm tra checksum. CI chạy 27 ca trên cả Windows/Ubuntu và 1 ca Kafka thật bằng chính `docker-compose.ingestion.yml`; xem [các lượt chạy của nhánh](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/workflows/ingestion.yml?query=branch%3Ademo%2Fingestion) để đối chiếu trạng thái từng commit.
-- Chưa xác nhận lượt lấy dữ liệu API thật: môi trường hiện không có `SOCRATA_APP_TOKEN`; thử truy cập metadata/endpoint v2 công khai nhận HTTP 403. Không tự đổi nguồn hoặc coi fixture là dữ liệu API thật.
+- Kiểm thử cục bộ: `python -m pytest -q` đạt 29 ca, 1 ca Kafka skip vì máy chưa có broker. Có ca HTTP v3 phân trang, v2 cấu hình tường minh, retry 429, thiếu trang, giới hạn lượt tải, dữ liệu lỗi, gửi trùng, kiểm tra checksum và bảo vệ nghiệm thu API thật khỏi fixture. CI chạy 29 ca trên cả Windows/Ubuntu và 1 ca Kafka thật bằng chính `docker-compose.ingestion.yml`; xem [các lượt chạy của nhánh](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/workflows/ingestion.yml?query=branch%3Ademo%2Fingestion) để đối chiếu trạng thái từng commit.
+- Đã xác nhận dữ liệu API thật qua SODA v2 trên GitHub Actions ngày 09/11/2026: history 63 dòng, replay 34 dòng, lookup 265 vùng. Hai tập có số dòng Parquet khớp với `COUNT(*)` độc lập từ API; replay tạo 34 sự kiện hợp lệ. [Bằng chứng lượt chạy thành công, attempt 2](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/42626510859/attempts/2). Chi tiết phạm vi và giới hạn ở mục bên dưới.
+- SODA v3 chưa nghiệm thu: người chạy chưa có tài khoản/token Socrata. Máy Windows hiện trả HTTP 403 cho metadata, endpoint v2 và trang quản lý token; không kết luận nguyên nhân là thiếu token. CSV lookup tải được 265 vùng trên máy này. Default demo vẫn là v3; phép thử v2 được chọn tường minh trong `configs/api-smoke.yaml`.
 - Chưa kiểm tra Spark/PostgreSQL toàn tuyến vì phần xử lý và kho đang là đặc tả. Mạnh/Bảo dùng manifest, schema Parquet và JSON sự kiện đã ghi trong hướng dẫn để nối phần mình.
+
+### Kết quả nghiệm thu API thật — 09/11/2026
+
+Dataset: `irx2-vgm4`. Endpoint: `https://data.cityofnewyork.us/resource/irx2-vgm4.json` (SODA v2, không app token).
+Lệnh: `python scripts/test_live_api.py --api-version 2`; cấu hình `configs/api-smoke.yaml`.
+Môi trường tải thành công: GitHub-hosted Ubuntu runner. Đây là phép thử kết nối/nhập liệu với hai kỳ một phút,
+không phải phạm vi lịch sử/replay 15 phút chính thức do nhóm trưởng chốt.
+
+| Vai trò | Phạm vi giờ New York `[start, end)` | Số trang | API COUNT(*) | Dòng Parquet | Dòng lỗi |
+| --- | --- | --- | --- | --- | --- |
+| history | 06/01/2025 08:00–08:01 (-05:00) | 1 | 63 | 63 | 0 |
+| replay | 20/01/2025 08:00–08:01 (-05:00) | 1 | 34 | 34 | 0 |
+
+Lookup: 265 dòng, giữ CSV gốc; manifest có ba mục `ready`. Replay dry-run đọc 34 dòng, tạo 34 sự kiện,
+không có dòng lỗi hoặc ngoài phạm vi. Artifact gồm JSON gốc, query, kết quả count, Parquet, manifest,
+`report.json` và JSONL replay. Artifact trên Actions giữ 7 ngày; số liệu và liên kết lượt chạy được giữ tại báo cáo này.
+
+Lượt đầu history gặp HTTP 503 sau các lần retry, replay đã tải được 34 dòng. Chạy lại attempt 2 thì cả hai kỳ
+và kiểm tra count đều đạt. Đây là lỗi dịch vụ tạm thời quan sát được, khác với HTTP 403 trên máy Windows.
+Đã tải artifact về Windows, kiểm tra lại checksum hai file Parquet/CSV, ánh xạ đường dẫn manifest sang máy này
+và tạo lại thành công 34 sự kiện qua chính module replay. Không coi kết quả này là đã sửa lỗi gọi API từ Windows
+hoặc đã xác nhận SODA v3. Hướng dẫn tạo token và chạy lại v3 nằm trong [ingestion.md](ingestion.md).
