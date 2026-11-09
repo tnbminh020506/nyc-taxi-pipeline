@@ -63,3 +63,4 @@ Kho dữ liệu đã được triển khai sẵn sàng gồm **3 bảng chuẩn 
 ### C. Nhánh Warehouse & Analytics (Bảo phụ trách)
 - Hoàn thiện câu truy vấn so sánh chuẩn MVP (`database/queries/compare_pickup_demand.sql`).
 - Xây dựng thêm View / Query hỗ trợ ma trận điều phối xe (`Surge` vs `Surplus`) theo Quận để phục vụ thuyết trình demo.
+
