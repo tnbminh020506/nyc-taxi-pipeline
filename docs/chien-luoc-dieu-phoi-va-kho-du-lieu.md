@@ -49,18 +49,3 @@ Kho dữ liệu đã được triển khai sẵn sàng gồm **3 bảng chuẩn 
 > **Lưu ý ràng buộc:** Không dùng Foreign Key chặn cứng từ bảng số liệu sang `taxi_zones` để đảm bảo khi stream gặp mã vùng mới phát sinh thì pipeline vẫn ghi nhận số liệu bình thường, không bị dừng luồng stream.
 
 ---
-
-## 4. Hợp đồng Bàn giao & Phối hợp Kỹ thuật (Action Items)
-
-### A. Với Chính (Data Ingestion)
-- **Tập tin `taxi_zone_lookup.csv`:** Chính chỉ cần tải file lookup gốc của TLC và đặt vào thư mục đã cấu hình. Bảo sẽ phụ trách nạp vào bảng `taxi_zones` với cơ chế UPSERT (`database/load/zone_lookup.sql`).
-- **Phạm vi Parquet:** Giữ đúng trường `tpep_pickup_datetime` và `pulocationid` như đã thỏa thuận.
-
-### B. Với Mạnh (Data Processing)
-- **Nhánh Batch (`historical_baseline`):** Mạnh xuất kết quả theo đúng 7 trường quy định. Bảo đã chuẩn bị sẵn cơ chế nạp dạng Transaction an toàn (`database/load/baseline.sql`) để thay thế kỳ lịch sử cũ mà không gây gián đoạn hệ thống.
-- **Nhánh Stream (`replay_pickup_counts`):** Trong `foreachBatch` của Spark Streaming, Mạnh gọi lệnh UPSERT theo mẫu của Bảo tại `database/load/replay_counts.sql` (`ON CONFLICT (replay_id, pickup_zone_id, window_start) DO UPDATE SET trip_count = EXCLUDED.trip_count`). Cơ chế này đảm bảo khi cùng 1 micro-batch được xử lý lại thì số liệu vẫn chính xác (Idempotent).
-
-### C. Nhánh Warehouse & Analytics (Bảo phụ trách)
-- Hoàn thiện câu truy vấn so sánh chuẩn MVP (`database/queries/compare_pickup_demand.sql`).
-- Xây dựng thêm View / Query hỗ trợ ma trận điều phối xe (`Surge` vs `Surplus`) theo Quận để phục vụ thuyết trình demo.
-
