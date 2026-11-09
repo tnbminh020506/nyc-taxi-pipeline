@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import re
+import time
 import uuid
 from datetime import timedelta
 from pathlib import Path
@@ -33,7 +34,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from .common import atomic_write, aware_time, resolve_path, source_time, write_json
-from .manifest import upsert_manifest
+from .manifest import entry_key, read_manifest, upsert_manifest
 
 LOG = logging.getLogger(__name__)
 TRIP_SCHEMA = pa.schema([
@@ -47,14 +48,66 @@ TRIP_SCHEMA = pa.schema([
 ])
 
 
+class MeasuredSession(requests.Session):
+    """Record logical calls and the retry history without logging credentials."""
+
+    def __init__(self, metrics=None, min_interval=0):
+        super().__init__()
+        self.metrics = metrics
+        self.min_interval = min_interval
+        self.last_request_start = None
+
+    def request(self, method, url, **kwargs):
+        started = time.monotonic()
+        if self.last_request_start is not None:
+            time.sleep(max(0, self.min_interval - (started - self.last_request_start)))
+        self.last_request_start = time.monotonic()
+        event = {"method": method, "kind": "lookup" if "cloudfront.net" in url else "api"}
+        try:
+            response = super().request(method, url, **kwargs)
+            history = getattr(getattr(response, "raw", None), "retries", None)
+            history = list(getattr(history, "history", ()))
+            statuses = [item.status if item.status is not None else "transport_error" for item in history]
+            statuses.append(response.status_code)
+            event.update(status=response.status_code, attempt_statuses=statuses, attempts=len(statuses),
+                         success=response.ok, first_attempt_success=response.ok and not history)
+            return response
+        except requests.RequestException as error:
+            event.update(status=None, success=False, first_attempt_success=False,
+                         error=type(error).__name__, attempt_statuses=None)
+            raise
+        finally:
+            event["seconds"] = round(time.monotonic() - started, 3)
+            if self.metrics is not None:
+                self.metrics.append(event)
+
+
+class GentleRetry(Retry):
+    """Unlike urllib3's default, a transient failure need not get an immediate retry."""
+
+    def __init__(self, *args, min_delay=0, **kwargs):
+        self.min_delay = min_delay
+        super().__init__(*args, **kwargs)
+
+    def new(self, **kwargs):
+        kwargs["min_delay"] = self.min_delay
+        return super().new(**kwargs)
+
+    def get_backoff_time(self):
+        return max(self.min_delay, super().get_backoff_time())
+
+
 def http_session(api=None):
     api = api or {}
-    session = requests.Session()
-    retries = Retry(total=api.get("max_retries", 3),
+    session = MeasuredSession(api.get("_request_metrics"), api.get("min_request_interval_seconds", 0))
+    retries = GentleRetry(total=api.get("max_retries", 3),
+                    min_delay=api.get("min_retry_delay_seconds", 0),
                     backoff_factor=api.get("retry_backoff_seconds", 0.5),
                     backoff_max=api.get("retry_backoff_max_seconds", 20),
+                    backoff_jitter=api.get("retry_jitter_seconds", 0),
                     status_forcelist=(429, 500, 502, 503, 504),
-                    allowed_methods=frozenset(("GET", "POST")), respect_retry_after_header=True)
+                    allowed_methods=frozenset(("GET", "POST")), respect_retry_after_header=True,
+                    raise_on_status=False)
     session.mount("https://", HTTPAdapter(max_retries=retries))
     session.mount("http://", HTTPAdapter(max_retries=retries))
     return session
@@ -131,6 +184,41 @@ def normalize_row(row, row_number, zone_name):
     }
 
 
+def resumable_attempt(config, entry, query):
+    """Only resume a non-ready attempt with an intact prefix of durable pages."""
+    if config["api"].get("resume", True) is False:
+        return None
+    manifest = resolve_path(config, config["paths"]["manifest"])
+    for previous in read_manifest(manifest)["datasets"]:
+        if entry_key(previous) != entry_key(entry) or previous["status"] == "ready":
+            continue
+        raw = Path(previous["raw_path"]).resolve()
+        parquet = Path(previous["parquet_path"]).resolve()
+        if (not raw.is_relative_to(resolve_path(config, config["paths"]["raw"]))
+                or not parquet.is_relative_to(resolve_path(config, config["paths"]["parquet"]))):
+            continue
+        try:
+            metadata = json.loads((raw / "request.json").read_text(encoding="utf-8"))
+            expected = (config["api"]["endpoint"], config["api"].get("version", 3),
+                        config["api"].get("page_size", 1000), query)
+            actual = (metadata["endpoint"], metadata["api_version"], metadata["page_size"], metadata["query"])
+            if expected != actual:
+                continue
+            pages = []
+            for number, page in enumerate(metadata["pages"], 1):
+                if page["file"] != f"page-{number:06d}.json":
+                    break
+                path = raw / page["file"]
+                if not page.get("sha256") or not path.is_file() or file_sha256(path) != page["sha256"]:
+                    break
+                pages.append(page)
+            if pages:
+                return raw, parquet, pages
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+    return None
+
+
 def ingest_trips(config, role, session):
     section = config["datasets"][role]
     api = config["api"]
@@ -142,7 +230,6 @@ def ingest_trips(config, role, session):
     raw = resolve_path(config, config["paths"]["raw"]) / run_name
     parquet = resolve_path(config, config["paths"]["parquet"]) / f"{run_name}.parquet"
     manifest = resolve_path(config, config["paths"]["manifest"])
-    raw.mkdir(parents=True)
     parquet.parent.mkdir(parents=True, exist_ok=True)
     entry = {
         "dataset_role": role, "source_id": source_id,
@@ -152,9 +239,19 @@ def ingest_trips(config, role, session):
         "status": "downloading", "coverage_complete": False,
         "page_count": 0, "row_count": 0, "invalid_row_count": 0,
         "source_timezone": zone_name,
+        "pages_reused": 0, "pages_downloaded": 0,
     }
     if role == "history" and section.get("fixture_pages") is not None:
         entry["confirmed_windows"] = config.get("confirmed_history_windows", [])
+    cached_pages = []
+    if section.get("fixture_pages") is None:
+        query = query_for_range(section, zone_name)
+        previous = resumable_attempt(config, entry, query)
+        if previous:
+            raw, parquet, cached_pages = previous
+            entry.update(raw_path=str(raw), parquet_path=str(parquet))
+            LOG.info("role=%s resuming %d cached pages", role, len(cached_pages))
+    raw.mkdir(parents=True, exist_ok=True)
     upsert_manifest(manifest, entry)
     partial = parquet.with_suffix(".parquet.tmp")
     try:
@@ -175,8 +272,13 @@ def ingest_trips(config, role, session):
                     rows = json.loads(content)
                     if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
                         raise ValueError("Fixture page must be an array of objects")
+                elif number <= len(cached_pages):
+                    content = (raw / cached_pages[number - 1]["file"]).read_bytes()
+                    rows = json.loads(content)
+                    entry["pages_reused"] += 1
                 else:
                     content, rows = api_page(session, api, query, number)
+                    entry["pages_downloaded"] += 1
                 page_file = raw / f"page-{number:06d}.json"
                 atomic_write(page_file, content)
                 normalized = [normalize_row(row, entry["row_count"] + index, zone_name)
@@ -190,7 +292,8 @@ def ingest_trips(config, role, session):
                 entry["row_count"] += len(rows)
                 entry["invalid_row_count"] += sum(bool(row["validation_error"]) for row in normalized)
                 entry["page_count"] += 1
-                metadata["pages"].append({"file": page_file.name, "rows": len(rows)})
+                metadata["pages"].append({"file": page_file.name, "rows": len(rows),
+                                           "sha256": hashlib.sha256(content).hexdigest()})
                 write_json(raw / "request.json", metadata)
                 LOG.info("role=%s page=%d rows=%d total=%d", role, number, len(rows), entry["row_count"])
                 if fixture_pages is None and len(rows) < api.get("page_size", 1000):

@@ -133,6 +133,59 @@ def test_empty_final_page_confirms_exact_multiple(config, server, monkeypatch):
     assert result["status"] == "ready" and result["row_count"] == 2 and result["page_count"] == 2
 
 
+def test_failed_download_resumes_without_requesting_good_pages(config, server, monkeypatch):
+    use_api(config, server, monkeypatch)
+    server["responses"] = [(200, [row(), row()]), (403, {"message": "denied"})]
+    failed, = run_ingestion(config, ("replay",))
+    assert failed["status"] == "failed"
+    server["responses"] = [(200, [row("2025-01-20T08:15:00")])]
+    ready, = run_ingestion(config, ("replay",))
+    assert ready["status"] == "ready" and ready["row_count"] == 3
+    assert ready["pages_reused"] == 1 and ready["pages_downloaded"] == 1
+    assert ready["raw_path"] == failed["raw_path"]
+    assert server["requests"][-1]["body"]["page"]["pageNumber"] == 2
+
+
+def test_corrupted_cached_page_is_downloaded_again(config, server, monkeypatch):
+    use_api(config, server, monkeypatch, max_pages=1)
+    server["responses"] = [(200, [row(), row()])]
+    failed, = run_ingestion(config, ("replay",))
+    (Path(failed["raw_path"]) / "page-000001.json").write_text("[]")
+    config["api"]["max_pages"] = 2
+    server["responses"] = [(200, [row(), row()]), (200, [])]
+    ready, = run_ingestion(config, ("replay",))
+    assert ready["status"] == "ready" and ready["row_count"] == 2
+    assert ready["pages_reused"] == 0
+
+
+def test_incomplete_download_can_resume_with_larger_page_limit(config, server, monkeypatch):
+    use_api(config, server, monkeypatch, max_pages=1)
+    server["responses"] = [(200, [row(), row()])]
+    assert run_ingestion(config, ("replay",))[0]["status"] == "incomplete"
+    config["api"]["max_pages"] = 2
+    server["responses"] = [(200, [])]
+    ready, = run_ingestion(config, ("replay",))
+    assert ready["status"] == "ready" and ready["pages_reused"] == 1
+    assert ready["row_count"] == 2
+
+
+def test_resume_can_be_disabled_for_fresh_measurements(config, server, monkeypatch):
+    use_api(config, server, monkeypatch, max_pages=1)
+    server["responses"] = [(200, [row(), row()])]
+    assert run_ingestion(config, ("replay",))[0]["status"] == "incomplete"
+    config["api"].update(max_pages=2, resume=False)
+    server["responses"] = [(200, [row(), row()]), (200, [])]
+    ready, = run_ingestion(config, ("replay",))
+    assert ready["status"] == "ready" and ready["pages_reused"] == 0
+    assert ready["pages_downloaded"] == 2
+
+
+def test_retry_delay_survives_retry_state_updates():
+    from nyc_taxi_pipeline.ingestion.ingest import GentleRetry
+    retry = GentleRetry(total=2, min_delay=2, backoff_factor=0)
+    assert retry.increment(method="GET", url="http://example.test").get_backoff_time() == 2
+
+
 def test_missing_page_invalidates_old_ready_entry(config, server, monkeypatch):
     run_ingestion(config, ("replay",))
     use_api(config, server, monkeypatch)
@@ -153,10 +206,14 @@ def test_rate_limit_is_retried(config, server, monkeypatch):
 def test_service_errors_recover_with_configured_retries(config, server, monkeypatch):
     use_api(config, server, monkeypatch)
     config["api"].update(max_retries=2, retry_backoff_seconds=0)
+    metrics = []
+    config["api"]["_request_metrics"] = metrics
     server["responses"] = [(503, {"message": "temporarily unavailable"}),
                            (500, {"message": "temporarily unavailable"}), (200, [row()])]
     result, = run_ingestion(config, ("replay",))
     assert result["status"] == "ready" and len(server["requests"]) == 3
+    assert metrics[0]["attempt_statuses"] == [503, 500, 200]
+    assert metrics[0]["success"] and not metrics[0]["first_attempt_success"]
 
 
 def test_missing_app_token_fails_without_http(config, server, monkeypatch):

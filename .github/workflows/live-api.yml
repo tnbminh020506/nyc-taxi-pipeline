@@ -1,13 +1,6 @@
 name: Live NYC API acceptance
 
 on:
-  push:
-    branches: [demo/ingestion]
-    paths:
-      - '.github/workflows/live-api.yml'
-      - 'configs/api-smoke.yaml'
-      - 'scripts/test_live_api.py'
-      - 'src/nyc_taxi_pipeline/ingestion/live_smoke.py'
   workflow_dispatch:
     inputs:
       api_version:

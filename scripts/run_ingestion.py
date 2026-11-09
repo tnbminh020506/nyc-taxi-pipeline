@@ -25,11 +25,15 @@ def main():
     parser = argparse.ArgumentParser(description="Fetch taxi API pages, build Parquet and publish a manifest")
     parser.add_argument("--config", default="configs/demo.example.yaml")
     parser.add_argument("--role", choices=("all", "history", "replay", "zone_lookup"), default="all")
+    parser.add_argument("--no-resume", action="store_true", help="Fetch every page again, ignoring partial attempts")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     try:
         roles = ("history", "replay", "zone_lookup") if args.role == "all" else (args.role,)
-        results = run_ingestion(load_config(args.config), roles)
+        config = load_config(args.config)
+        if args.no_resume:
+            config["api"]["resume"] = False
+        results = run_ingestion(config, roles)
         print(json.dumps(results, ensure_ascii=False, indent=2))
         return 0 if all(result["status"] == "ready" for result in results) else 1
     except Exception as error:

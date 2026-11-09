@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
+import copy
+import time
 
 import pyarrow.parquet as pq
 
@@ -11,6 +13,13 @@ from .replay import run_replay
 
 
 def run_live_smoke(config, report_path="output/api-smoke/report.json"):
+    config = copy.deepcopy(config)
+    # A reliability/acceptance run must contact the provider rather than become
+    # green by reading pages cached by a previous failed measurement.
+    config["api"]["resume"] = False
+    metrics = []
+    config["api"]["_request_metrics"] = metrics
+    started = time.monotonic()
     report_path = resolve_path(config, report_path)
     report = {"started_at": datetime.now(timezone.utc).isoformat(), "status": "failed",
               "dataset_id": config["api"]["dataset_id"], "api_version": config["api"].get("version", 3),
@@ -33,6 +42,9 @@ def run_live_smoke(config, report_path="output/api-smoke/report.json"):
                 if entry.get("input_mode") != "api" or not entry.get("coverage_complete"):
                     raise ValueError(f"{role}: expected a complete API download")
                 parquet_rows = pq.ParquetFile(entry["parquet_path"]).metadata.num_rows
+                source_ids = pq.read_table(entry["parquet_path"], columns=["source_record_id"])["source_record_id"].to_pylist()
+                if any(not value for value in source_ids) or len(source_ids) != len(set(source_ids)):
+                    raise ValueError(f"{role}: missing or duplicate API row IDs across pages")
                 query = query_for_range(config["datasets"][role], config["source_timezone"])
                 count_query = "SELECT count(*) AS total " + query[query.index("WHERE "):query.index("ORDER BY")].strip()
                 content, count_rows = api_page(session, config["api"], count_query, 1)
@@ -52,5 +64,7 @@ def run_live_smoke(config, report_path="output/api-smoke/report.json"):
     except Exception as error:
         report["error"] = str(error)
     report["finished_at"] = datetime.now(timezone.utc).isoformat()
+    report["seconds"] = round(time.monotonic() - started, 3)
+    report["http_requests"] = metrics
     write_json(report_path, report)
     return report

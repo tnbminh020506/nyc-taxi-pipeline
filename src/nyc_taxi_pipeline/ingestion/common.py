@@ -77,6 +77,8 @@ def load_config(path):
     api = config.get("api", {})
     if api.get("version", 3) not in (2, 3):
         raise ValueError("api.version must be 2 or 3")
+    if not isinstance(api.get("resume", True), bool):
+        raise ValueError("api.resume must be true or false")
     for name, default in (("page_size", 1000), ("max_pages", 100), ("timeout_seconds", 30)):
         value = api.get(name, default)
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
@@ -84,7 +86,9 @@ def load_config(path):
     retries = api.get("max_retries", 3)
     if isinstance(retries, bool) or not isinstance(retries, int) or not 0 <= retries <= 10:
         raise ValueError("api.max_retries must be an integer from 0 to 10")
-    for name, default in (("retry_backoff_seconds", 0.5), ("retry_backoff_max_seconds", 20)):
+    for name, default in (("retry_backoff_seconds", 0.5), ("retry_backoff_max_seconds", 20),
+                          ("min_retry_delay_seconds", 0), ("retry_jitter_seconds", 0),
+                          ("min_request_interval_seconds", 0)):
         value = float(api.get(name, default))
         if not math.isfinite(value) or not 0 <= value <= 120:
             raise ValueError(f"api.{name} must be finite and between 0 and 120")
