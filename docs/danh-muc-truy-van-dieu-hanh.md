@@ -90,9 +90,3 @@ Dưới đây là bảng đối chiếu toàn bộ các nhu cầu thông tin đi
 - **Thông tin hiển thị:** Biến động số chuyến qua các khung 15 phút liên tiếp (08:00, 08:15, 08:30...) so với baseline để biết xu hướng đang tăng hay đã đạt đỉnh và bắt đầu giảm.
 
 ---
-
-## 3. LỜI KHUYÊN KHI TRAO ĐỔI VỚI NHÓM TRƯỞNG
-
-Khi báo cáo với Nhóm trưởng, bạn có thể nêu rõ:
-1. **Các mục làm được xuất sắc (Mục 1 đến 9):** Hệ thống giải quyết trọn vẹn bài toán **Phát hiện điểm nóng**, **Xác định khu vực thừa xe để điều phối**, **Tính mật độ theo Vùng/Quận** và **Quy luật cao điểm theo tuần**.
-2. **Giải thích các mục không khả thi (Mục 10, 11, 12):** Do đặc thù dữ liệu TLC NYC Open Data không có GPS xe trống và không phải nhật ký app đặt xe, nên ta không có số xe trống và ETA. Đối với số chuyến cả năm, kho dữ liệu đã tối ưu bằng cách lưu mức trung bình lịch sử đại diện thay vì lưu hàng chục gigabyte dữ liệu thô.
