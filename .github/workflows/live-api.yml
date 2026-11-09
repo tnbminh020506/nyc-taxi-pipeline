@@ -8,9 +8,18 @@ on:
         type: choice
         options: ['2', '3']
         default: '2'
+      config_file:
+        description: 'Small smoke sample or the aligned 15-minute demo sample'
+        type: choice
+        options: ['configs/api-smoke.yaml', 'configs/demo.example.yaml']
+        default: 'configs/api-smoke.yaml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: nyc-taxi-provider-tests
+  cancel-in-progress: false
 
 jobs:
   live-api:
@@ -23,9 +32,10 @@ jobs:
           python-version: '3.10'
       - run: python -m pip install -r requirements-ingestion.txt
       - name: Fetch and verify real NYC data
-        run: python scripts/test_live_api.py --api-version "$API_VERSION"
+        run: python scripts/test_live_api.py --config "$CONFIG_FILE" --api-version "$API_VERSION"
         env:
           API_VERSION: ${{ inputs.api_version || '2' }}
+          CONFIG_FILE: ${{ inputs.config_file || 'configs/api-smoke.yaml' }}
           SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
       - name: Save raw pages, Parquet, manifest and acceptance report
         if: always()
@@ -34,7 +44,7 @@ jobs:
           name: nyc-api-v${{ inputs.api_version || '2' }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: |
             output/api-smoke/
-            data/raw/api-smoke/
-            data/processed/api-smoke/
-            data/api-smoke-manifest.json
+            data/raw/
+            data/processed/
+            data/*manifest.json
           retention-days: 7

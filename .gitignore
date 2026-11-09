@@ -13,3 +13,5 @@ __pycache__/
 /output/
 /data/*manifest.json
 /configs/*.local.yaml
+manifest.local.json
+imported.local.yaml

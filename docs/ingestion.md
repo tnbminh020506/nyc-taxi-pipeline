@@ -234,6 +234,36 @@ trang trong 15 phút. Xem [phương pháp và kết quả](api-reliability.md).
 Token không đảm bảo sửa được mọi HTTP 403. Phân biệt kết quả v2/v3 và máy chạy
 trong báo cáo; một lượt v2 thành công không chứng minh v3 đã được nghiệm thu.
 
+## Tải và dùng trên máy bị 403
+
+Có thể chạy ingestion ở GitHub-hosted runner rồi tải kết quả về máy. Đây là cách
+lấy dữ liệu công khai qua v2 từ môi trường đã kiểm chứng; không khẳng định đã sửa
+được HTTP 403 trực tiếp trên mạng Windows hiện tại.
+
+```powershell
+gh workflow run live-api.yml --ref demo/ingestion -f api_version=2 -f config_file=configs/demo.example.yaml
+gh run list --workflow live-api.yml --branch demo/ingestion
+gh run watch <RUN_ID> --exit-status
+gh run download <RUN_ID> --dir output/nyc-download-<RUN_ID>
+.\.venv\Scripts\python.exe scripts/import_api_artifact.py output/nyc-download-<RUN_ID>
+```
+
+Thay `<RUN_ID>` bằng mã lượt chạy đã chọn. Bước import chỉ nhận artifact có báo
+cáo nghiệm thu `passed`, kiểm tra checksum/đếm lại JSON, Parquet và lookup, rồi
+tạo `manifest.local.json` và `imported.local.yaml`. File gốc của runner được giữ.
+Đường dẫn Linux được ánh xạ sang thư mục dữ liệu trên máy này; bước import không
+gọi API. Nếu tải cả nhiều batch đo, chọn riêng một thư mục `run-XXX` để import.
+
+Dùng đường dẫn config mà lệnh import in ra để chạy replay:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/replay_taxi_stream.py --config '<CONFIG_PATH>' --dry-run
+```
+
+Mạnh/Bảo có thể đọc manifest cục bộ đó và các file được tham chiếu. Đã đối chiếu
+trên artifact thật: 516 event_id ở lượt 15 phút được giữ nguyên sau khi nhập về
+Windows; `source_file` được đổi sang đường dẫn cục bộ để tra đúng manifest.
+
 ## Tài liệu giao thức
 
 - [Socrata SODA3: query và phân trang](https://dev.socrata.com/docs/queries/)
