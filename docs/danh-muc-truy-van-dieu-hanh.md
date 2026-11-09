@@ -2,122 +2,97 @@
 
 > **Người soạn:** Uông Gia Bảo (Data Warehouse & Analytics)  
 > **Gửi tới:** Nhóm trưởng, Chính (Data Ingestion), Mạnh (Data Processing)  
-> **Mục tiêu:** Thống nhất toàn bộ danh mục thông tin truy vấn phục vụ demo, báo cáo và giải bài toán điều phối taxi cho trung tâm tổng.
+> **Mục tiêu:** Thống nhất toàn bộ danh mục thông tin truy vấn phục vụ demo, báo cáo và giải bài toán điều phối taxi cho trung tâm tổng, kèm đánh giá tính khả thi kỹ thuật dựa trên 3 bảng dữ liệu hiện có trong kho PostgreSQL.
 
 ---
 
-## 1. TỔNG QUAN PHÂN LOẠI TRUY VẤN
+## 1. BẢNG TỔNG KẾT ĐÁNH GIÁ TÍNH KHẢ THI (DỰA TRÊN 3 BẢNG POSTGRESQL HIỆN CÓ)
 
-Để vừa **đạt điểm tuyệt đối bài kiểm thử tự động của đề tài**, vừa **đáp ứng trọn vẹn yêu cầu nghiệp vụ của Nhóm trưởng** (số chuyến, mật độ, điều phối xe...), hệ thống báo cáo được chia làm 3 nhóm truy vấn:
+Dưới đây là bảng đối chiếu toàn bộ các nhu cầu thông tin điều hành, nêu rõ **Khả thi hay Không khả thi** và giải thích kỹ thuật:
 
-1. **Nhóm A: Truy vấn Nghiệm thu Bắt buộc (Core MVP)** — Chấm điểm tự động theo hợp đồng đồ án.
-2. **Nhóm B: Truy vấn Nghiệp vụ Điều hành & Điều phối Taxi** — Trả lời bài toán điều xe, mật độ theo vùng, khu vực còn điều phối được.
-3. **Nhóm C: Truy vấn Quy mô Thời gian (Tháng / Tuần / Cao điểm)** — Đánh giá sản lượng và xu hướng lịch sử.
+| STT | Thông tin / Chỉ số mong muốn | Khả thi trên 3 bảng hiện có? | File / Cách xử lý kỹ thuật | Lý do & Giới hạn dữ liệu |
+| :---: | :--- | :---: | :--- | :--- |
+| **1** | **So sánh nhu cầu đón khách 15 phút (Core MVP)** |  **Khả thi** | `compare_pickup_demand.sql` | So khớp trực tiếp `replay_pickup_counts` và `historical_baseline` theo khung 15p. *(Đạt 100% tiêu chí nghiệm thu).* |
+| **2** | **Xác định khu vực còn điều phối được xe** |  **Khả thi** | `taxi_dispatch_matrix.sql` | Lọc các vùng có số chuyến thực tế giảm mạnh so với lịch sử (`change_pct <= -30%`), dư xe để điều đi. |
+| **3** | **Gợi ý ghép cặp điều xe theo Quận** |  **Khả thi** | `taxi_dispatch_matrix.sql` | Tự động ghép vùng thừa xe (`SURPLUS`) sang vùng thiếu xe (`SURGE`) trong cùng một `borough` (Quận). |
+| **4** | **Mật độ đón khách theo từng Vùng (%)** |  **Khả thi** | `zone_and_borough_density.sql` | Lấy số chuyến của vùng chia cho tổng số chuyến toàn thành phố trong cùng khung 15 phút (`OVER()`). |
+| **5** | **Tỷ trọng / Mật độ đón khách theo Quận (%)** |  **Khả thi** | `zone_and_borough_density.sql` | `GROUP BY borough`, tính tỷ lệ đóng góp của từng Quận (Manhattan, Queens, Brooklyn...) vào lưu lượng NYC. |
+| **6** | **Giám sát Cửa ngõ Sân bay & Ga tàu** |  **Khả thi** | `airport_and_transit_hubs.sql` | Lọc theo `zone_name` hoặc ID của JFK Airport, LaGuardia (LGA), Newark (EWR), Penn Station... |
+| **7** | **Bản đồ nhiệt Giờ cao điểm trong tuần** |  **Khả thi** | `weekly_peak_hours.sql` | Khai thác từ `historical_baseline`, tìm thứ mấy và khung 15p nào có lượng đón khách trung bình cao nhất. |
+| **8** | **Xu hướng nhu cầu theo thời gian (Time-series)** |  **Khả thi** | `time_series_trend.sql` | Đồ thị biến động qua các `window_start` liên tiếp (08:00 -> 08:15 -> 08:30) của phiên replay. |
+| **9** | **Tổng số chuyến trong kỳ demo / phiên replay** |  **Khả thi** | `trip_volume_summary.sql` | `SUM(trip_count)` qua các cửa sổ của phiên phát lại hiện tại. |
+| **10** | **Tổng số chuyến taxi trong tháng / cả năm** | ❌ **Không khả thi** | *Không lưu trong kho* | Kho PostgreSQL chỉ lưu dữ liệu tổng hợp (mức trung bình lịch sử và vài khung giờ của phiên replay demo), không lưu toàn bộ cuốc thô của cả năm. |
+| **11** | **Số lượng xe trống / Tỷ lệ Cung - Cầu** | ❌ **Không khả thi** | *Nguồn không có* | Dữ liệu NYC Open Data chỉ ghi nhận cuốc xe đã đón khách thành công (`pickup_datetime`), không có GPS xe trống đang chạy tìm khách. |
+| **12** | **Thời gian khách chờ xe (ETA) & Tỷ lệ hủy cuốc** | ❌ **Không khả thi** | *Nguồn không có* | Dữ liệu nguồn mở không phải dữ liệu app đặt xe (không có nhật ký bấm gọi xe, không có cuốc bị tài xế/khách hủy). |
 
 ---
 
-## 2. CHI TIẾT CÁC THÔNG TIN TRUY VẤN SẼ THỰC HIỆN
+## 2. CHI TIẾT CÁC TRUY VẤN KHẢ THI SẼ TRIỂN KHAI
 
 ### NHÓM A: TRUY VẤN NGHIỆM THU BẮT BUỘC (CORE MVP)
 
 #### Truy vấn 1: So sánh Nhu cầu Đón khách theo Cửa sổ 15 phút (`compare_pickup_demand.sql`)
-*Phục vụ câu hỏi đề tài: "Khu vực nào ghi nhận nhiều chuyến đón khách hơn mức lịch sử trong cùng khung 15 phút?"*
-
-- **Tham số đầu vào:** `replay_id` (phiên phát lại) và `window_start` (cửa sổ 15 phút cần xem).
-- **Các thông tin hiển thị (Đúng chuẩn 7 cột nghiệm thu):**
-  1. `pickup_zone_id`: Mã định danh khu vực.
-  2. `zone_name`: Tên khu vực (nếu chưa có trong danh mục thì hiển thị mã ID).
-  3. `observed_trip_count`: Số chuyến đón khách thực tế đếm từ luồng Stream của Mạnh.
-  4. `baseline_trip_count`: Mức trung bình lịch sử tương ứng (cùng Thứ, cùng Khung 15 phút).
-  5. `reference_windows`: Số lượng cửa sổ lịch sử dùng làm mẫu số (độ tin cậy của baseline).
-  6. `change_pct`: Tỷ lệ tăng/giảm so với lịch sử: `100 * (observed - baseline) / baseline`.
-  7. `change_unavailable_reason`: Lý do nếu không tính được `%` (`missing_baseline` hoặc `zero_baseline`).
-- **Thứ tự sắp xếp:** Tỷ lệ tăng giảm dần (`change_pct DESC NULLS LAST`).
+- **Trạng thái:**  **Khả thi 100%**.
+- **Đầu vào:** `replay_id` và mốc giờ `window_start` (ví dụ: `2025-01-20 08:00:00-05`).
+- **Thông tin hiển thị (7 cột bắt buộc):**
+  1. `pickup_zone_id`: Mã khu vực đón khách.
+  2. `zone_name`: Tên khu vực (fallback sang mã vùng nếu khuyết tên).
+  3. `observed_trip_count`: Số chuyến đón thực tế từ Stream.
+  4. `baseline_trip_count`: Mức trung bình lịch sử (cùng Thứ, cùng Khung 15p).
+  5. `reference_windows`: Số cửa sổ lịch sử tham chiếu.
+  6. `change_pct`: Phần trăm chênh lệch: `100 * (observed - baseline) / baseline`.
+  7. `change_unavailable_reason`: Lý do nếu không tính được % (`missing_baseline` hoặc `zero_baseline`).
+- **Thứ tự:** `change_pct DESC NULLS LAST`.
 
 ---
 
-### NHÓM B: TRUY VẤN ĐIỀU HÀNH & ĐIỀU PHỐI TAXI (THEO YÊU CẦU NHÓM TRƯỞNG)
+### NHÓM B: TRUY VẤN NGHIỆP VỤ ĐIỀU HÀNH & ĐIỀU PHỐI (THEO NHÓM TRƯỞNG GIAO)
 
-#### Truy vấn 2: Ma trận Điều phối Taxi — Xác định "Khu vực còn điều phối được xe" (`taxi_dispatch_matrix.sql`)
-*Phục vụ trung tâm tổng: Phát lệnh điều xe từ vùng vắng khách sang chi viện cho vùng thiếu xe.*
-
+#### Truy vấn 2: Ma trận Điều phối — Xác định "Khu vực còn điều phối được xe" (`taxi_dispatch_matrix.sql`)
+- **Trạng thái:**  **Khả thi 100%**.
+- **Ý nghĩa:** Trả lời cho tổng đài biết: *Lấy xe từ đâu và chuyển xe đi đâu?*
 - **Thông tin hiển thị:**
-  - `borough`: Tên Quận (Manhattan, Queens, Brooklyn, Bronx, Staten Island).
-  - `zone_name`: Tên khu vực cụ thể.
-  - `observed_trip_count` vs `baseline_trip_count`: So sánh thực tế và lịch sử.
-  - `net_trip_diff`: Số lượng chuyến chênh lệch tuyệt đối (`observed - baseline`).
-  - `dispatch_action`: Trạng thái phân loại điều phối:
-    - **`SURGE / NEED_TAXIS` (Thiếu xe trầm trọng):** Nhu cầu tăng vọt (`change_pct >= +30%` và vượt trên 10 chuyến).
-    - **`SURPLUS / CAN_REALLOCATE` (Khu vực còn điều phối được xe):** Nhu cầu thấp hơn hẳn lịch sử (`change_pct <= -30%`), tài xế đang vắng khách, **đây chính là nguồn xe để điều chuyển đi nơi khác**.
-    - **`BALANCED` (Cung cầu ổn định):** Dao động bình thường quanh mức lịch sử.
-  - `suggested_transfer_to`: Gợi ý điều phối: Tự động ghép cặp chuyển xe từ vùng thừa sang vùng thiếu trong cùng một Quận.
+  - `borough`: Tên Quận.
+  - `zone_name`: Tên khu vực.
+  - `observed_trip_count` vs `baseline_trip_count`.
+  - `net_trip_diff`: Chênh lệch số chuyến tuyệt đối (`observed - baseline`).
+  - `dispatch_action`: Phân loại hành động:
+    - **`SURGE / NEED_TAXIS` (Thiếu xe trầm trọng):** Nhu cầu tăng vọt (`change_pct >= +30%`).
+    - **`SURPLUS / CAN_REALLOCATE` (Khu vực còn điều phối được xe):** Nhu cầu giảm sâu (`change_pct <= -30%`), tài xế vắng khách, **đây chính là nguồn xe để rút đi chi viện**.
+    - **`BALANCED` (Cung cầu ổn định):** Hoạt động bình thường.
+  - `suggested_transfer_to`: Tự động gợi ý chuyển xe từ vùng thừa sang vùng thiếu trong cùng Quận.
 
 #### Truy vấn 3: Mật độ Taxi theo Khu vực và theo Quận (`zone_and_borough_density.sql`)
-*Phục vụ đánh giá mức độ tập trung khách hàng trên toàn thành phố.*
-
+- **Trạng thái:**  **Khả thi 100%**.
+- **Ý nghĩa:** Đánh giá mức độ tập trung khách hàng trên toàn bản đồ NYC.
 - **Thông tin hiển thị:**
-  - **Mật độ theo Khu vực (Zone Density %):**
-    $$\text{Tỷ trọng nhu cầu vùng} = \frac{\text{Số chuyến của vùng}}{\text{Tổng số chuyến toàn New York trong khung 15p}} \times 100\%$$
-    *(Xác định top 10 khu vực đón khách nhộn nhịp nhất thành phố hiện tại).*
-  - **Mật độ gộp theo Quận (Borough Share %):**
-    - Tổng số chuyến thực tế của cả Quận trong khung 15 phút.
-    - Tỷ lệ % đóng góp của từng Quận vào tổng lưu lượng taxi toàn thành phố (ví dụ: Manhattan chiếm 68%, Queens 18%, Brooklyn 10%...).
+  - **Mật độ theo Vùng (%):** Tỷ trọng số chuyến của từng vùng trên tổng số chuyến toàn thành phố tại khung 15 phút đó (Top 10 điểm nóng nhất).
+  - **Mật độ gộp theo Quận (%):** Tỷ lệ thị phần chuyến đón của từng Quận (Manhattan, Queens, Brooklyn...).
 
-#### Truy vấn 4: Giám sát Trọng điểm Cửa ngõ Giao thông & Sân bay (`airport_and_transit_hubs.sql`)
-*Theo dõi riêng các đầu mối giao thông quy mô lớn nhất NYC.*
-
-- **Thông tin hiển thị:**
-  - Tình hình đón khách tại: **JFK Airport**, **LaGuardia Airport (LGA)**, **Newark Airport (EWR)**, **Penn Station**, **Grand Central**.
-  - So sánh lưu lượng thực tế và lịch sử để tổng đài chủ động gom xe đón các đợt chuyến bay hạ cánh.
+#### Truy vấn 4: Giám sát Trọng điểm Cửa ngõ Sân bay & Ga tàu (`airport_and_transit_hubs.sql`)
+- **Trạng thái:**  **Khả thi 100%**.
+- **Thông tin hiển thị:** Lọc riêng lưu lượng đón khách tại các sân bay lớn (JFK Airport, LaGuardia, Newark) và nhà ga lớn để tổng đài chuẩn bị số lượng xe đón khách theo các đợt chuyến bay hạ cánh.
 
 ---
 
-### NHÓM C: TRUY VẤN QUY MÔ THỜI GIAN (THÁNG, NĂM, TUẦN, CAO ĐIỂM)
+### NHÓM C: TRUY VẤN QUY MÔ THỜI GIAN (LỊCH SỬ & PHIÊN DEMO)
 
-> [!NOTE]
-> **Giải thích kỹ thuật gửi Nhóm trưởng:**  
-> Dữ liệu trong kho PostgreSQL là **dữ liệu tổng hợp (Aggregated/Baseline Data)** của các kỳ khảo sát được chọn lọc từ API (chứ không lưu toàn bộ hàng triệu cuốc thô của cả năm để tối ưu dung lượng).  
-> Do đó, thông tin về quy mô thời gian được phản ánh chuẩn xác qua các truy vấn sau:
-
-#### Truy vấn 5: Tổng sản lượng chuyến đi trong Kỳ khảo sát (`trip_volume_summary.sql`)
-*Đánh giá quy mô số chuyến taxi trong kỳ khảo sát (Tháng/Năm/Kỳ Replay).*
-
-- **Thông tin hiển thị:**
-  - `survey_period`: Kỳ khảo sát tháng/năm đang được chọn (ví dụ: Tháng 01/2025).
-  - `total_replay_trips`: Tổng số lượt đón khách đã được stream xử lý qua tất cả các cửa sổ của phiên.
-  - `active_zones_count`: Số lượng khu vực có phát sinh đón khách.
-  - `peak_15m_window`: Cửa sổ 15 phút ghi nhận sản lượng đón khách cao nhất toàn thành phố.
+#### Truy vấn 5: Tổng sản lượng chuyến đi của Phiên Demo (`trip_volume_summary.sql`)
+- **Trạng thái:**  **Khả thi 100%**.
+- **Thông tin hiển thị:** Tổng số chuyến đón khách lũy kế qua các cửa sổ của phiên phát lại (`replay_id`), số vùng hoạt động, và khung giờ có lưu lượng khách cao nhất (Peak Window).
 
 #### Truy vấn 6: Bản đồ Nhiệt Khung giờ Cao điểm trong Tuần (`weekly_peak_hours.sql`)
-*Khai thác từ bảng `historical_baseline` để phân tích quy luật theo lịch.*
-
-- **Thông tin hiển thị:**
-  - `iso_weekday`: Thứ trong tuần (Thứ Hai đến Chủ Nhật).
-  - `peak_slot_15m`: Khung giờ cao điểm nhất trong ngày của từng thứ (ví dụ: Thứ Sáu cao điểm lúc 18:30–18:45).
-  - `average_citywide_trips`: Lượng khách trung bình lịch sử toàn thành phố tại khung giờ đó.
-  - Phục vụ: Giúp trung tâm lập kế hoạch phân ca trực cho tài xế theo từng ngày trong tuần.
+- **Trạng thái:**  **Khả thi 100%**.
+- **Thông tin hiển thị:** Thứ mấy trong tuần và khung 15 phút nào thường có lượng khách lịch sử cao nhất để phân ca trực cho tài xế.
 
 #### Truy vấn 7: Diễn biến Biến động Thời gian thực (`time_series_trend.sql`)
-*Đồ thị xu hướng qua các khung 15 phút liên tiếp của phiên demo.*
-
-- **Thông tin hiển thị:**
-  - Chuỗi mốc thời gian liên tiếp (`window_start`: 08:00, 08:15, 08:30, 08:45...).
-  - Số chuyến thực tế theo thời gian so với đường chuẩn lịch sử (Baseline) của các khu vực trọng điểm.
-  - Cho biết nhu cầu đang dốc lên (bắt đầu cao điểm) hay dốc xuống (hạ nhiệt) để dừng điều xe.
+- **Trạng thái:**  **Khả thi 100%**.
+- **Thông tin hiển thị:** Biến động số chuyến qua các khung 15 phút liên tiếp (08:00, 08:15, 08:30...) so với baseline để biết xu hướng đang tăng hay đã đạt đỉnh và bắt đầu giảm.
 
 ---
 
-## 3. TỔNG KẾT BẢNG ĐỐI CHIẾU NHIỆM VỤ
+## 3. LỜI KHUYÊN KHI TRAO ĐỔI VỚI NHÓM TRƯỞNG
 
-| Yêu cầu của Nhóm trưởng | Tên Truy vấn thực hiện | Nguồn bảng dữ liệu |
-| :--- | :--- | :--- |
-| **Khu vực còn điều phối được taxi** | Truy vấn 2: `taxi_dispatch_matrix.sql` (`SURPLUS / CAN_REALLOCATE`) | `replay_pickup_counts` + `historical_baseline` + `taxi_zones` |
-| **Mật độ taxi trong vùng / quận** | Truy vấn 3: `zone_and_borough_density.sql` | `replay_pickup_counts` + `taxi_zones` |
-| **Số chuyến taxi theo kỳ (tháng/phiên)** | Truy vấn 5: `trip_volume_summary.sql` | `replay_pickup_counts` + `historical_baseline` |
-| **Khu vực thiếu xe / Điểm nóng** | Truy vấn 1: `compare_pickup_demand.sql` (Core MVP) | `replay_pickup_counts` + `historical_baseline` + `taxi_zones` |
-| **Cao điểm theo thứ / tuần** | Truy vấn 6: `weekly_peak_hours.sql` | `historical_baseline` |
-| **Cửa ngõ Sân bay & Ga tàu** | Truy vấn 4: `airport_and_transit_hubs.sql` | `replay_pickup_counts` + `taxi_zones` |
-
----
-
-*Tài liệu này đã được đồng bộ vào repository để làm căn cứ triển khai cho các bước tiếp theo.*
+Khi báo cáo với Nhóm trưởng, bạn có thể nêu rõ:
+1. **Các mục làm được xuất sắc (Mục 1 đến 9):** Hệ thống giải quyết trọn vẹn bài toán **Phát hiện điểm nóng**, **Xác định khu vực thừa xe để điều phối**, **Tính mật độ theo Vùng/Quận** và **Quy luật cao điểm theo tuần**.
+2. **Giải thích các mục không khả thi (Mục 10, 11, 12):** Do đặc thù dữ liệu TLC NYC Open Data không có GPS xe trống và không phải nhật ký app đặt xe, nên ta không có số xe trống và ETA. Đối với số chuyến cả năm, kho dữ liệu đã tối ưu bằng cách lưu mức trung bình lịch sử đại diện thay vì lưu hàng chục gigabyte dữ liệu thô.
