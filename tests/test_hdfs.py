@@ -134,3 +134,16 @@ def test_webhdfs_paths_redirect_mapping_and_insufficient_replicas(hdfs_config, m
         monkeypatch.setattr(client, "blocks", lambda _: [{"names": ["dn1:9866"], "corrupt": False}])
         with pytest.raises(ValueError, match="not replicated"):
             client.wait_replicas("/a")
+
+
+def test_replay_rejects_malformed_checksum_before_building_cache_path(hdfs_config, fake_hdfs):
+    run_ingestion(hdfs_config)
+    receipt = json.loads(receipt_path(hdfs_config).read_text())
+    document = json.loads(fake_hdfs.files[receipt["manifest_uri"]])
+    for entry in document["datasets"]:
+        if entry["dataset_role"] == "replay":
+            entry["parquet_sha256"] = "../../outside"
+    fake_hdfs.files[receipt["manifest_uri"]] = json.dumps(document).encode()
+    hdfs_config["storage"]["manifest_uri"] = receipt["manifest_uri"]
+    with pytest.raises(ValueError, match="SHA-256 hex"):
+        list(iter_events(hdfs_config, "invalid-checksum"))

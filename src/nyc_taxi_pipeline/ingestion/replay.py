@@ -20,6 +20,7 @@
 import hashlib
 import json
 import logging
+import re
 import sqlite3
 import tempfile
 import time
@@ -66,6 +67,10 @@ def iter_events(config, replay_id, stats=None):
                     from .hdfs import WebHDFS
                     if entry.get("storage_kind") != "hdfs" or not entry.get("hdfs_verified"):
                         raise ValueError("Replay requires a verified HDFS publication")
+                    if not isinstance(source_file, str) or not source_file.startswith("hdfs://"):
+                        raise ValueError("HDFS replay requires an HDFS source_file URI")
+                    if not re.fullmatch(r"[0-9a-f]{64}", str(entry.get("parquet_sha256", ""))):
+                        raise ValueError("HDFS Parquet checksum must be a SHA-256 hex digest")
                     cache = resolve_path(config, config["storage"].get("replay_cache", "output/hdfs-replay-cache"))
                     with WebHDFS(config) as client:
                         path = client.download(source_file, cache / f"{entry['parquet_sha256']}.parquet",

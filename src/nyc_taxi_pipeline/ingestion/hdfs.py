@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import posixpath
+import re
 import time
 import uuid
 from contextlib import contextmanager
@@ -156,6 +157,9 @@ class WebHDFS:
                 "replication": self.replication}
 
     def download(self, uri, target, checksum):
+        self.path(uri)  # Validate authority/path even when a verified cache exists.
+        if not isinstance(checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", checksum):
+            raise ValueError("Expected a SHA-256 hex digest for HDFS download")
         target = Path(target)
         if target.is_file() and file_sha256(target) == checksum:
             return target
