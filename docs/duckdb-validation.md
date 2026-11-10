@@ -1,8 +1,19 @@
 # Nghiệm thu DuckDB/TLC — 10/11/2026
 
+> Cập nhật sau nghiệm thu lớn: demo hiện tại dùng **8.461/5.651 dòng history/replay (59,96%/40,04%)**, [bằng chứng mới](evidence/tlc-demo-3-2-2026-11-10.json). Benchmark đã chuyển sang chọn mốc theo số dòng 60/40; mặc định local, không tải nguồn. CI thường không gọi TLC; HTTPS phải bật thủ công `run_live_tlc`. Các số liệu 48,7 triệu dòng và phép chia hai nửa năm bên dưới là **bằng chứng của cấu hình trước khi đổi tỉ lệ**, được giữ nguyên.
+
 **DuckDB phù hợp với ingestion này:** đã thực sự xuất 48.722.567 dòng từ 12 tháng Yellow Taxi 2025 và đối chiếu độc lập toàn bộ đầu ra. Tuy nhiên, HTTPS TLC vẫn có thể bị CDN chặn theo mạng/IP; không coi DuckDB là cách bảo đảm hết HTTP 403.
 
 Đã chuyển bước 1.1 của Chính sang DuckDB/TLC, giữ schema Parquet bảy cột, manifest v1 và payload replay/Kafka. [Hướng dẫn chạy](ingestion.md) · [phân công cập nhật](guide/giao-viec-demo-taxi.md).
+
+## Kiểm thử mới theo yêu cầu 3:2 số dòng
+
+- Demo hai thứ Hai, cùng 08:00–10:00: **8.461 history / 5.651 replay**, không có dòng lỗi, tương ứng **59,956%/40,044%**. Dry-run tạo đủ 5.651 sự kiện; đọc lại giữ nguyên payload/ID, các ID phân biệt. Dùng cache Parquet/CSV trên Windows, không gọi TLC. [JSON demo](evidence/tlc-demo-3-2-2026-11-10.json).
+- Benchmark hai tháng cache, **một lượt mới**: history **4.232.215**, replay **2.820.532** dòng hợp lệ, tương ứng **60,008%/39,992%**. Mốc chia tự chọn từ cache: **07/02/2025 07:45 New York**, giữ nguyên cửa sổ 15 phút và thứ tự thời gian. Không còn chia đôi số tháng.
+- COPY hai đầu ra mất **12,843 giây**, RSS cao nhất khoảng **603 MiB**, spill khoảng **357 MiB**. Đối chiếu độc lập từng dòng bằng PyArrow mất thêm 66 giây, tất cả digest khớp. [JSON benchmark mới](evidence/tlc-local-3-2-2months-2026-11-10.json).
+- Cấu hình mới có phạm vi/lựa chọn file theo từng vai trò khác cấu hình chia đôi cũ; không thay các JSON lịch sử hoặc ép tổng dòng mới giống lượt cũ.
+- Thêm kiểm thử chọn mốc bằng số dòng hợp lệ, không tách các chuyến cùng timestamp/cửa sổ, giữ dòng lỗi nhưng không tính vào tỉ lệ; local thiếu/hỏng cache không tự phát HTTP. Kiểm thử cục bộ hiện đạt **52 ca**, Kafka thật do CI kiểm tra.
+- Không gọi lại TLC cho lần xác minh này. Benchmark mặc định local, CI push thông thường chỉ unit/Kafka. HTTPS phải được bật thủ công bằng `run_live_tlc`.
 
 ## Kết quả đo thực tế
 
@@ -62,14 +73,14 @@ Trên workspace Windows này đã chuẩn bị `configs/tlc-cached.local.yaml` v
 ## Chạy lại
 
 ```powershell
-# HTTPS: hai tháng, hai lần COPY mới, 10 bộ nhỏ kèm replay lặp lại.
-.\.venv\Scripts\python.exe scripts/benchmark_tlc.py --months 2 --large-repeats 2 --small-repeats 10 --report output/tlc-remote.json
+# HTTPS chỉ khi cần nghiệm thu mạng mới: một lượt lớn, không vòng lặp nhỏ.
+.\.venv\Scripts\python.exe scripts/benchmark_tlc.py --source-mode remote --months 2 --large-repeats 1 --small-repeats 0 --report output/tlc-remote.json
 # Local: cùng nguồn thật đã cache, tách riêng khỏi nghiệm thu HTTPS.
 .\.venv\Scripts\python.exe scripts/benchmark_tlc.py --months 2 --large-repeats 2 --small-repeats 0 --source-mode local --report output/tlc-local.json
 # HTTPS: cả năm 2025.
-.\.venv\Scripts\python.exe scripts/benchmark_tlc.py --months 12 --large-repeats 1 --small-repeats 2 --report output/tlc-year.json
+.\.venv\Scripts\python.exe scripts/benchmark_tlc.py --source-mode remote --months 12 --large-repeats 1 --small-repeats 0 --report output/tlc-year.json
 ```
 
-`--source-mode local` dùng file tháng trong `output/tlc-source-cache`; nếu chưa có thì bước chuẩn bị tải bản gốc vẫn cần mạng. Mỗi report ghi rõ chế độ, nguồn/hash, metrics và kết quả. CLI trả exit 1 khi thất bại. Workflow **Ingestion checks** cho phép chọn 2 hoặc 12 tháng khi chạy thủ công; artifact chỉ chứa báo cáo JSON, không chứa toàn bộ dataset.
+`--source-mode local` là mặc định và chỉ dùng file tháng trong `output/tlc-source-cache`; nếu thiếu cache thì dừng, không tự gọi mạng. Mốc chia mới được tính từ số dòng hợp lệ trong cache, không còn mặc định hai nửa năm. Mỗi report ghi rõ chế độ, nguồn/hash, metrics và kết quả. CLI trả exit 1 khi thất bại. Workflow **Ingestion checks** chỉ gọi TLC khi chạy thủ công và bật `run_live_tlc: true`, cho phép chọn 2 hoặc 12 tháng; artifact chỉ chứa báo cáo JSON, không chứa toàn bộ dataset.
 
 Nguồn tham chiếu: [TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page), [DuckDB Parquet](https://duckdb.org/docs/stable/data/parquet/overview), [DuckDB httpfs HTTPS](https://duckdb.org/docs/stable/core_extensions/httpfs/https).

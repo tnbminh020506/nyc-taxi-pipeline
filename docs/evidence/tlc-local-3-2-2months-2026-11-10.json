@@ -1,0 +1,156 @@
+{
+  "started_at": "2026-11-10T02:25:54.031872+00:00",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.10.11",
+  "duckdb": "1.5.6",
+  "pyarrow": "23.0.1",
+  "physical_ram_bytes": 16913203200,
+  "duckdb_settings": {
+    "memory_limit": "512MB",
+    "threads": 2,
+    "temp_directory": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\spill",
+    "max_temp_directory_size": "8GB",
+    "extension_directory": "output/duckdb-extensions"
+  },
+  "small_runs": [],
+  "large_runs": [
+    {
+      "run": 1,
+      "entries": [
+        {
+          "dataset_role": "history",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-01-01T05:00:00+00:00",
+          "range_end": "2025-02-07T12:45:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-history-82de475b36784ffa94e975a085fc7910",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-history-82de475b36784ffa94e975a085fc7910.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 4232215,
+          "invalid_row_count": 0,
+          "source_access": "local",
+          "source_file_count": 2,
+          "source_file_rows": 7052769,
+          "parquet_sha256": "004379326c8d0385d81ec84196d8fd734e8509eacb2a6634bcf58417e082990c",
+          "parquet_bytes": 41277553,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 7.906
+        },
+        {
+          "dataset_role": "replay",
+          "source_id": "tlc-yellow-taxi",
+          "range_start": "2025-02-07T12:45:00+00:00",
+          "range_end": "2025-03-01T05:00:00+00:00",
+          "raw_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\raw\\tlc-replay-368fa05fca01418d97324891cd9d3a63",
+          "parquet_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-benchmark-2months\\parquet\\tlc-replay-368fa05fca01418d97324891cd9d3a63.parquet",
+          "input_mode": "tlc_parquet",
+          "source_timezone": "America/New_York",
+          "status": "ready",
+          "coverage_complete": true,
+          "row_count": 2820532,
+          "invalid_row_count": 0,
+          "source_access": "local",
+          "source_file_count": 1,
+          "source_file_rows": 3577543,
+          "parquet_sha256": "b08380897e029e61ab00b85514e16984eecd8ffe4edeb1bb29d06c6016f6f909",
+          "parquet_bytes": 27868390,
+          "duckdb_version": "1.5.6",
+          "elapsed_seconds": 4.875
+        }
+      ],
+      "metrics": {
+        "baseline_rss_bytes": 79507456,
+        "peak_rss_bytes": 631730176,
+        "peak_spill_bytes": 373784576,
+        "wall_seconds": 12.843
+      },
+      "match": true,
+      "valid_row_split": {
+        "history": 4232215,
+        "replay": 2820532,
+        "history_share": 0.600080365848938
+      },
+      "independent_validation": [
+        [
+          {
+            "filename": "yellow_tripdata_2025-01.parquet",
+            "rows": 3475205,
+            "row_content_sha256": "a05d0a3123bc04d1d5c66f495d04ad6dfac908e72995304671d61fe1cb79553c",
+            "match": true
+          },
+          {
+            "filename": "yellow_tripdata_2025-02.parquet",
+            "rows": 757010,
+            "row_content_sha256": "ef270c143c8591aa694316e482d48263c3ff194695cc04effa519cee3f044b13",
+            "match": true
+          }
+        ],
+        [
+          {
+            "filename": "yellow_tripdata_2025-02.parquet",
+            "rows": 2820532,
+            "row_content_sha256": "3eac03aa67aa7665376ba920d184bac3341c1c1fa5863b31f721d8edf6bdcf22",
+            "match": true
+          }
+        ]
+      ],
+      "validation_metrics": {
+        "baseline_rss_bytes": 85409792,
+        "peak_rss_bytes": 244162560,
+        "peak_spill_bytes": 0,
+        "wall_seconds": 66.0
+      }
+    }
+  ],
+  "status": "passed",
+  "source_mode": "local",
+  "note": "Ingestion run success rate, not individual httpfs request success rate; RSS includes Python/Arrow, memory_limit is DuckDB's buffer budget.",
+  "reference_sources": [
+    {
+      "month": "2025-01",
+      "path": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet",
+      "filename": "yellow_tripdata_2025-01.parquet",
+      "local_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-source-cache\\yellow_tripdata_2025-01.parquet",
+      "bytes": 59158238,
+      "sha256": "9af277e4c0d3f9deb30644da822981e1e7df6af58313170fd3aa8a474485488a",
+      "rows": 3475226
+    },
+    {
+      "month": "2025-02",
+      "path": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-02.parquet",
+      "filename": "yellow_tripdata_2025-02.parquet",
+      "local_path": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-source-cache\\yellow_tripdata_2025-02.parquet",
+      "bytes": 60343086,
+      "sha256": "037cba555a73663f3a51a2c27816e40e3feb364769942bdf122b9da31e377bd3",
+      "rows": 3577543
+    }
+  ],
+  "reference_download_metrics": {
+    "baseline_rss_bytes": 72335360,
+    "peak_rss_bytes": 74534912,
+    "peak_spill_bytes": 0,
+    "wall_seconds": 0.422
+  },
+  "split_plan": {
+    "basis": "valid_records",
+    "target_history_share": 0.6,
+    "estimated_history_rows": 4232215,
+    "estimated_replay_rows": 2820532,
+    "estimated_history_share": 0.600080365848938,
+    "split_at": "2025-02-07T07:45:00-05:00",
+    "note": "Nearest whole 15-minute boundary; actual ingestion counts are checked separately."
+  },
+  "datasets": {
+    "history": {
+      "range_start": "2025-01-01T00:00:00-05:00",
+      "range_end": "2025-02-07T07:45:00-05:00"
+    },
+    "replay": {
+      "range_start": "2025-02-07T07:45:00-05:00",
+      "range_end": "2025-03-01T00:00:00-05:00"
+    }
+  },
+  "finished_at": "2026-11-10T02:27:18.777488+00:00"
+}

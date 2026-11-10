@@ -25,7 +25,7 @@ python -m venv .venv
 
 Linux/macOS dùng `.venv/bin/python`. Runtime cần `requirements-ingestion.txt`; bộ dev thêm pytest, NumPy và psutil cho benchmark. Python 3.10 trở lên; DuckDB cố định 1.5.6 để tái lập kết quả.
 
-Hai kỳ 15 phút trong config chỉ là ví dụ: history 06/01/2025 và replay 20/01/2025, 08:00–08:15 giờ New York. Nhóm trưởng vẫn cần chốt phạm vi lịch sử đủ cho baseline. Có thể sao chép `configs/demo.example.yaml` thành `configs/demo.local.yaml`, chỉnh hai kỳ không giao nhau rồi truyền `--config`. Mọi mốc phải có offset; đường dẫn tương đối tính từ `workspace_root`.
+Demo đã chỉnh theo yêu cầu **3:2 theo số dòng hợp lệ**: history thứ Hai 06/01/2025 và replay thứ Hai 20/01/2025, cùng **08:00–10:00 New York**, mỗi kỳ có 8 cửa sổ 15 phút. Bản nguồn đã cache cho **8.461 history / 5.651 replay**, tức **59,96%/40,04%**; không chia theo độ dài thời gian hoặc bỏ dòng để ép tỉ lệ. `replay_id` mới là `tlc-demo-3-2-001`, tốc độ 100 sự kiện/giây (~57 giây + overhead). [Bằng chứng demo](evidence/tlc-demo-3-2-2026-11-10.json). Nhóm trưởng vẫn cần chốt phạm vi lịch sử đủ cho baseline. Có thể sao chép `configs/demo.example.yaml` thành `configs/demo.local.yaml`, chỉnh hai kỳ không giao nhau rồi truyền `--config`. Mọi mốc phải có offset; đường dẫn tương đối tính từ `workspace_root`.
 
 Chọn `--role history`, `--role replay` hoặc `--role zone_lookup` nếu chỉ cần một phần. Đầu ra mặc định: `data/tlc-manifest.json`, Parquet trong `data/processed`, provenance/lookup trong `data/raw`. Không dùng lẫn manifest Socrata cũ.
 
@@ -141,14 +141,14 @@ ra +50% cần nghiệm thu tiếp khi ghép phần của Mạnh/Bảo.
 ## 5. Kiểm thử khối lượng thực
 
 ```powershell
-# Hai tháng thật, hai lượt nhập mới, 10 lượt nhỏ + kiểm tra replay lặp lại.
-.\.venv\Scripts\python.exe scripts/benchmark_tlc.py --months 2 --large-repeats 2 --small-repeats 10 --report output/tlc-2months.json
-# Cả năm 2025, chia history/replay thành hai nửa năm.
-.\.venv\Scripts\python.exe scripts/benchmark_tlc.py --months 12 --large-repeats 1 --small-repeats 0 --report output/tlc-year.json
+# Hai tháng thật đã cache, một lượt lớn; không gọi TLC.
+.\.venv\Scripts\python.exe scripts/benchmark_tlc.py --source-mode local --months 2 --large-repeats 1 --small-repeats 0 --report output/tlc-2months.json
+# Chỉ khi cần nghiệm thu mạng mới: cả năm, mốc chia theo 60/40 số dòng.
+.\.venv\Scripts\python.exe scripts/benchmark_tlc.py --source-mode remote --months 12 --large-repeats 1 --small-repeats 0 --report output/tlc-year.json
 ```
 
-Chế độ mặc định là `--source-mode remote`; có thể chọn `--source-mode local --small-repeats 0` để đo riêng bản nguồn đã cache, report phân biệt rõ hai chế độ. Benchmark tải bản gốc từng tháng vào `output/tlc-source-cache`, rồi ingestion **vẫn đọc URL HTTPS** để xuất hàng triệu dòng. PyArrow đọc cache theo batch 65.536 dòng, độc lập đối chiếu từng vị trí dòng nguồn, UTC pickup, mã vùng và cờ hợp lệ với toàn bộ đầu ra. So hash nội dung đã sắp theo vị trí vật lý, không chỉ so `COUNT(*)`. Lặp lại kiểm tra checksum Parquet và `event_id` trên cùng bộ replay nhỏ. Không phát hàng chục triệu message Kafka trong bài benchmark ingestion.
+Benchmark mặc định **local, 1 lượt lớn, 0 lượt nhỏ**; thiếu cache hoặc timezone database thì báo thiếu, không tự tải. Chỉ `--source-mode remote` mới cho phép tải bản gốc thiếu và đọc URL HTTPS. Trong cả hai chế độ, `balanced_ranges` chỉ đọc cache để chọn mốc chia gần **60/40 số dòng hợp lệ**, giữ nguyên các cửa sổ 15 phút. Report ghi cả tỉ lệ dự kiến và thực xuất; tỉ lệ history ngoài 57–63% làm nghiệm thu thất bại. Không chia ngẫu nhiên và không mặc định cắt đôi số tháng. PyArrow đọc cache theo batch 65.536 dòng, độc lập đối chiếu từng vị trí dòng nguồn, UTC pickup, mã vùng và cờ hợp lệ với toàn bộ đầu ra. So hash nội dung đã sắp theo vị trí vật lý, không chỉ so `COUNT(*)`. Lặp lại kiểm tra checksum Parquet và `event_id` trên cùng bộ replay nhỏ. Không phát hàng chục triệu message Kafka trong bài benchmark ingestion.
 
-JSON báo cáo chứa thời gian, RSS, spill, số dòng/file và digest đối chiếu; lỗi vẫn ghi báo cáo và trả exit code 1. [Kết quả đo thực tế](duckdb-validation.md). CI chạy unit trên Windows/Ubuntu, Kafka thật cho hai backend và bài hai tháng TLC qua HTTPS trên Ubuntu; báo cáo mạng được lưu làm artifact.
+JSON báo cáo chứa thời gian, RSS, spill, số dòng/file và digest đối chiếu; lỗi vẫn ghi báo cáo và trả exit code 1. [Kết quả đo thực tế](duckdb-validation.md). CI thông thường chỉ chạy unit trên Windows/Ubuntu và Kafka thật cho hai backend, không gọi TLC. Job HTTPS chỉ chạy khi mở workflow thủ công và bật `run_live_tlc: true`; không lặp các lượt nhỏ mặc định. Báo cáo mạng được lưu làm artifact. Xem [prompt ban đêm](overnight-ingestion.md).
 
 Tài liệu: [DuckDB Parquet](https://duckdb.org/docs/stable/data/parquet/overview), [httpfs HTTPS](https://duckdb.org/docs/stable/core_extensions/httpfs/https), [TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).

@@ -21,6 +21,8 @@ Nhóm trưởng ghi dataset và bộ lọc API, số trang và số dòng, Zone 
 
 ## Bàn giao Chính — Data Ingestion
 
+Cập nhật tỉ lệ demo theo số dòng hợp lệ: **8.461/5.651 (59,96%/40,04%)**; benchmark local mới **4.232.215/2.820.532 (60,008%/39,992%)**, đối chiếu đầy đủ đạt. Config và benchmark giữ thứ tự thời gian, không chia ngẫu nhiên. CI thường không gọi TLC; [prompt làm ban đêm](overnight-ingestion.md) và [bằng chứng cập nhật](duckdb-validation.md).
+
 Hiện tại: DuckDB/TLC đã đạt 49 test trên Windows/Ubuntu, 2 ca Kafka thật, hai lượt local 7.052.716 dòng và một lượt HTTPS cả năm 48.722.567 dòng. [Số liệu và bằng chứng đầy đủ](duckdb-validation.md). Nội dung API dưới đây giữ theo thời điểm nghiệm thu cũ.
 
 - Nhánh: `demo/ingestion`, tạo từ `origin/demo/mvp`.

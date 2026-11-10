@@ -1,14 +1,15 @@
 # Chính - TLC monthly Parquet via DuckDB; no Socrata token required.
-# Ranges are examples; the team must confirm the final demo periods.
+# Cached TLC verification: 8,461 history / 5,651 replay rows (~60/40).
+# Same Monday hours and complete 15-minute windows; do not randomly split rows.
 workspace_root: ..
 source_timezone: America/New_York
 datasets:
   history:
     range_start: '2025-01-06T08:00:00-05:00'
-    range_end: '2025-01-06T08:15:00-05:00'
+    range_end: '2025-01-06T10:00:00-05:00'
   replay:
     range_start: '2025-01-20T08:00:00-05:00'
-    range_end: '2025-01-20T08:15:00-05:00'
+    range_end: '2025-01-20T10:00:00-05:00'
 zone_lookup:
   source_id: taxi-zone-lookup
   source: https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
@@ -21,8 +22,8 @@ kafka:
   topic: taxi-events
   partitions: 1
 replay:
-  replay_id: tlc-demo-001
-  events_per_second: 10
+  replay_id: tlc-demo-3-2-001
+  events_per_second: 100  # About 57 seconds for the example replay, plus broker overhead.
 source:
   kind: tlc_parquet
   source_id: tlc-yellow-taxi

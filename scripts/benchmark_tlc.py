@@ -33,6 +33,7 @@ from urllib3.util.retry import Retry
 from nyc_taxi_pipeline.ingestion.common import load_config, write_json
 from nyc_taxi_pipeline.ingestion.ingest import file_sha256, run_ingestion
 from nyc_taxi_pipeline.ingestion.replay import iter_events
+from nyc_taxi_pipeline.ingestion.split import balanced_ranges
 from nyc_taxi_pipeline.ingestion.tlc import connect, literal, sources_for_range
 
 NULL = np.iinfo(np.int64).min
@@ -74,7 +75,7 @@ def update_digest(digest, indices, pickup, zones, flags):
     digest.update(packed.tobytes())
 
 
-def download_reference(files, cache):
+def download_reference(files, cache, allow_download=False):
     cache.mkdir(parents=True, exist_ok=True)
     retained = []
     with requests.Session() as session:
@@ -83,6 +84,8 @@ def download_reference(files, cache):
         for item in files:
             path = cache / item["filename"]
             if not path.exists():
+                if not allow_download:
+                    raise FileNotFoundError(f"Missing source cache: {path}; local mode never downloads TLC files")
                 partial = path.with_suffix(".parquet.tmp")
                 with session.get(item["path"], stream=True, timeout=(10, 90)) as response:
                     response.raise_for_status()
@@ -156,11 +159,11 @@ def validate_reference(config, entry, retained):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--months", type=int, default=2)
-    parser.add_argument("--large-repeats", type=int, default=2)
-    parser.add_argument("--small-repeats", type=int, default=5)
+    parser.add_argument("--large-repeats", type=int, default=1)
+    parser.add_argument("--small-repeats", type=int, default=0)
     parser.add_argument("--report", default="output/tlc-benchmark.json")
-    parser.add_argument("--source-mode", choices=("remote", "local"), default="remote",
-                        help="Explicit local mode validates cached original files; never reported as HTTPS ingestion")
+    parser.add_argument("--source-mode", choices=("remote", "local"), default="local",
+                        help="Default: cached files only; remote explicitly permits HTTPS ingestion/downloads")
     args = parser.parse_args()
     if not 2 <= args.months <= 12 or args.large_repeats < 1 or args.small_repeats < 0:
         parser.error("months must be 2..12, large-repeats >=1 and small-repeats >=0")
@@ -186,6 +189,8 @@ def main():
             try:
                 pc.assume_timezone(pa.array([datetime(2025, 1, 1)]), "America/New_York")
             except pa.ArrowInvalid:
+                if args.source_mode == "local":
+                    raise RuntimeError("Arrow's IANA timezone database is missing; prepare it separately. Local benchmark never downloads it.")
                 # Arrow's C++ library needs IANA text files on Windows; Python's
                 # binary tzdata wheel alone is insufficient for this validator.
                 from pyarrow.util import download_tzdata_on_windows
@@ -211,13 +216,16 @@ def main():
         zone = ZoneInfo(config["source_timezone"])
         def boundary(month):
             return datetime(2025 + (month == 13), month if month < 13 else 1, 1, tzinfo=zone).isoformat()
-        split = args.months // 2 + 1
-        config["datasets"] = {"history": {"range_start": boundary(1), "range_end": boundary(split)},
-                              "replay": {"range_start": boundary(split), "range_end": boundary(args.months + 1)}}
-        files = [*sources_for_range(config, "history")[0], *sources_for_range(config, "replay")[0]]
-        retained, transfer = measured(lambda: download_reference(files, root / "output/tlc-source-cache"), temporary)
+        lower, upper = boundary(1), boundary(args.months + 1)
+        config["datasets"]["history"] = {"range_start": lower, "range_end": upper}
+        files = sources_for_range(config, "history")[0]
+        retained, transfer = measured(lambda: download_reference(
+            files, root / "output/tlc-source-cache", allow_download=args.source_mode == "remote"), temporary)
         report["reference_sources"] = retained
         report["reference_download_metrics"] = transfer
+        config["datasets"], report["split_plan"] = balanced_ranges(
+            config, [item["local_path"] for item in retained], lower, upper)
+        report["datasets"] = config["datasets"]
         if args.source_mode == "local":
             config["source"]["files"] = {item["month"]: item["local_path"] for item in retained}
         hashes = None
@@ -232,6 +240,11 @@ def main():
             run = {"run": number + 1, "entries": entries, "metrics": stats, "match": False}
             report["large_runs"].append(run)
             write_json(args.report, report)
+            valid = [entry["row_count"] - entry["invalid_row_count"] for entry in entries]
+            share = valid[0] / sum(valid) if sum(valid) else 0
+            run["valid_row_split"] = {"history": valid[0], "replay": valid[1], "history_share": share}
+            if not 0.57 <= share <= 0.63:
+                raise AssertionError(f"Actual history share {share:.4f} is outside 57..63%")
             validation, validation_stats = measured(
                 lambda: [validate_reference(config, e, retained) for e in entries], temporary)
             run.update(independent_validation=validation, validation_metrics=validation_stats, match=True)

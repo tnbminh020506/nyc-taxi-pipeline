@@ -13,6 +13,7 @@ MVP trả lời câu hỏi **Khu vực nào có nhiều chuyến đón khách h�
 Nhánh `demo/ingestion` triển khai phần Chính (1.1–1.4): TLC Parquet HTTPS → DuckDB → Parquet/manifest và replay → Kafka.
 Đã nghiệm thu xuất **48.722.567 dòng thật của 12 tháng 2025** và đối chiếu toàn bộ đầu ra; xem [số liệu, CI và giới hạn CDN](docs/duckdb-validation.md).
 Xem [cách cài, chạy bộ mẫu, cấu hình DuckDB/Kafka và hợp đồng bàn giao](docs/ingestion.md).
+Demo hiện tại chia khoảng **60/40 theo số dòng hợp lệ**: history 8.461, replay 5.651; dùng cache cho các lượt chạy lại. [Hướng dẫn giao việc ban đêm cho agent](docs/overnight-ingestion.md).
 Phần Spark và PostgreSQL vẫn theo phân công bên dưới, chờ tích hợp với Mạnh và Bảo.
 
 Xem sơ đồ và yêu cầu đầu vào, đầu ra của từng bước trong [hướng dẫn triển khai pipeline taxi](docs/guide/giao-viec-demo-taxi.md).

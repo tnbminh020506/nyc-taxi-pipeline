@@ -2,6 +2,8 @@
 
 > Cập nhật 10/11/2026 theo nhóm trưởng: bước 1.1 của Chính chuyển sang DuckDB đọc Parquet trực tiếp từ TLC vì API nguồn đang lỗi. JSON API cũ được giữ làm fixture/lịch sử kiểm thử; không còn yêu cầu gọi v2/v3 cho luồng mặc định.
 
+> Yêu cầu demo đã chốt: history/replay khoảng **3:2 theo số bản ghi hợp lệ** (60%/40%), history trước replay, không chia ngẫu nhiên. Bộ demo hiện tại dùng hai thứ Hai 06/01 và 20/01/2025, cùng 08:00–10:00 giờ New York: 8.461/5.651 dòng, đạt 59,96%/40,04%. Ưu tiên nguồn đã cache, không gọi lặp TLC khi kiểm thử hoặc phát lại. [Prompt giao agent làm ban đêm](../overnight-ingestion.md).
+
 ## Tổng quan luồng quy trình
 
 Demo trả lời câu hỏi **“Khu vực nào ghi nhận nhiều chuyến đón khách hơn mức lịch sử trong cùng khung 15 phút?”**

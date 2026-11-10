@@ -11,6 +11,7 @@ import pytest
 from nyc_taxi_pipeline.ingestion.ingest import TRIP_SCHEMA, run_ingestion
 from nyc_taxi_pipeline.ingestion.manifest import read_manifest
 from nyc_taxi_pipeline.ingestion.replay import iter_events
+from nyc_taxi_pipeline.ingestion.split import balanced_ranges
 from nyc_taxi_pipeline.ingestion.tlc import sources_for_range
 
 
@@ -119,3 +120,28 @@ def test_connection_failure_does_not_publish_ready(config, monkeypatch):
     monkeypatch.setattr("nyc_taxi_pipeline.ingestion.tlc.connect", failure)
     entry = run_ingestion(config, ("replay",))[0]
     assert entry["status"] == "failed" and not Path(entry["parquet_path"]).exists()
+
+
+def test_record_split_keeps_time_ties_windows_and_excludes_invalid_zones(config):
+    local_source(config, "2025-01", [("2025-01-06T08:00:00", 161)] * 4
+                 + [("2025-01-06T08:15:00", 161)] * 2
+                 + [("2025-01-06T08:30:00", 161)] * 4
+                 + [("2025-01-06T08:00:00", None)])
+    ranges, plan = balanced_ranges(config, list(config["source"]["files"].values()),
+                                    "2025-01-06T08:00:00-05:00", "2025-01-06T09:00:00-05:00")
+    config["datasets"] = ranges
+    assert ranges["history"]["range_end"] == ranges["replay"]["range_start"] == "2025-01-06T08:30:00-05:00"
+    assert plan["estimated_history_share"] == 0.6
+    history, replay = run_ingestion(config, ("history", "replay"))
+    assert (history["row_count"], history["invalid_row_count"], replay["row_count"]) == (7, 1, 4)
+    assert len(list(iter_events(config, "split-test"))) == 4
+
+
+def test_split_refuses_remote_or_a_single_indivisible_window(config):
+    with pytest.raises(ValueError, match="local Parquet"):
+        balanced_ranges(config, ["https://example.com/source.parquet"],
+                        "2025-01-01T00:00:00-05:00", "2025-02-01T00:00:00-05:00")
+    local_source(config, "2025-01", [("2025-01-06T08:00:00", 161)] * 10)
+    with pytest.raises(ValueError, match="both sides"):
+        balanced_ranges(config, list(config["source"]["files"].values()),
+                        "2025-01-01T00:00:00-05:00", "2025-02-01T00:00:00-05:00")
