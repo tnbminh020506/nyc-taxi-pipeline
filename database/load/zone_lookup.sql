@@ -12,3 +12,12 @@
 -- Yêu cầu
 -- - Kiểm tra ánh xạ LocationID, Zone, Borough với file mẫu. Cập nhật theo pickup_zone_id.
 -- - Nạp lại cùng lookup giữ nguyên số dòng và nội dung.
+
+-- Mẫu câu lệnh UPSERT chuẩn dùng trong tiến trình nạp Python (warehouse/loader.py)
+-- hoặc sau khi đọc từ bảng tạm staging_taxi_zones(location_id, borough, zone):
+INSERT INTO taxi_zones (pickup_zone_id, zone_name, borough)
+VALUES (%(pickup_zone_id)s, %(zone_name)s, %(borough)s)
+ON CONFLICT (pickup_zone_id) DO UPDATE
+SET
+    zone_name = EXCLUDED.zone_name,
+    borough   = EXCLUDED.borough;
