@@ -1,0 +1,156 @@
+{
+  "status": "passed",
+  "input_mode": "synthetic",
+  "tlc_requests": 0,
+  "rows_requested": 1000000,
+  "replication_required": 2,
+  "fault_test_requested": true,
+  "split_plan": {
+    "basis": "valid_records",
+    "target_history_share": 0.6,
+    "estimated_history_rows": 600300,
+    "estimated_replay_rows": 399700,
+    "estimated_history_share": 0.6003,
+    "split_at": "2025-01-07T22:45:00-05:00",
+    "note": "Nearest whole 15-minute boundary; actual ingestion counts are checked separately."
+  },
+  "large_publish_seconds": 6.63,
+  "large_entries": [
+    {
+      "dataset_role": "history",
+      "source_id": "synthetic-hdfs-stress",
+      "range_start": "2025-01-01T05:00:00+00:00",
+      "range_end": "2025-01-08T03:45:00+00:00",
+      "raw_path": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/history/raw",
+      "parquet_path": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/history/trips.parquet",
+      "input_mode": "tlc_parquet",
+      "source_timezone": "America/New_York",
+      "status": "ready",
+      "coverage_complete": true,
+      "row_count": 600300,
+      "invalid_row_count": 0,
+      "source_access": "local",
+      "source_file_count": 1,
+      "source_file_rows": 1000000,
+      "parquet_sha256": "1a8dcab2f44c1a859167ebbda25f445afdbeed42b60f170d685804cf442b89c6",
+      "parquet_bytes": 2920631,
+      "duckdb_version": "1.5.6",
+      "elapsed_seconds": 1.178,
+      "raw_files": [
+        {
+          "uri": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/history/raw/source.json",
+          "sha256": "6b26997eba3315c805a9f54fc7cc5fbf774b31b1bcfdc125df54eb59b821a300",
+          "bytes": 3924,
+          "replication": 2
+        }
+      ],
+      "original_sources": [
+        {
+          "uri": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/raw/trips/c7bc5885678e07c40a7c9a06ca817d54c386c89d5a97c6407bcff92b3ab0a07c/yellow_tripdata_2025-01.parquet",
+          "sha256": "c7bc5885678e07c40a7c9a06ca817d54c386c89d5a97c6407bcff92b3ab0a07c",
+          "bytes": 21174441,
+          "replication": 2
+        }
+      ],
+      "storage_kind": "hdfs",
+      "replication": 2,
+      "hdfs_verified": true
+    },
+    {
+      "dataset_role": "replay",
+      "source_id": "synthetic-hdfs-stress",
+      "range_start": "2025-01-08T03:45:00+00:00",
+      "range_end": "2025-02-01T05:00:00+00:00",
+      "raw_path": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/replay/raw",
+      "parquet_path": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/replay/trips.parquet",
+      "input_mode": "tlc_parquet",
+      "source_timezone": "America/New_York",
+      "status": "ready",
+      "coverage_complete": true,
+      "row_count": 399700,
+      "invalid_row_count": 0,
+      "source_access": "local",
+      "source_file_count": 1,
+      "source_file_rows": 1000000,
+      "parquet_sha256": "df5fe42bb4c65d24ec8a136b0efb464abaed46a44232c6346b1759b866722889",
+      "parquet_bytes": 1944303,
+      "duckdb_version": "1.5.6",
+      "elapsed_seconds": 0.752,
+      "raw_files": [
+        {
+          "uri": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/replay/raw/source.json",
+          "sha256": "34ec427346a7604c029aa43eee53bbc1051d23787e8c0c697b2763adda99ce27",
+          "bytes": 3921,
+          "replication": 2
+        }
+      ],
+      "original_sources": [
+        {
+          "uri": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/raw/trips/c7bc5885678e07c40a7c9a06ca817d54c386c89d5a97c6407bcff92b3ab0a07c/yellow_tripdata_2025-01.parquet",
+          "sha256": "c7bc5885678e07c40a7c9a06ca817d54c386c89d5a97c6407bcff92b3ab0a07c",
+          "bytes": 21174441,
+          "replication": 2
+        }
+      ],
+      "storage_kind": "hdfs",
+      "replication": 2,
+      "hdfs_verified": true
+    },
+    {
+      "dataset_role": "zone_lookup",
+      "source_id": "taxi-zone-lookup",
+      "range_start": null,
+      "range_end": null,
+      "raw_path": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/zone_lookup/zone-lookup-e60307f48ffe46a0b90cd8c25164edcc.csv",
+      "parquet_path": null,
+      "status": "ready",
+      "row_count": 1,
+      "sha256": "24315ceec6127ce4519f0c8ce52f3c4ea64c869d006b5b46f2587bb3c8ee27c3",
+      "columns": [
+        "LocationID",
+        "Borough",
+        "Zone"
+      ],
+      "storage_kind": "hdfs",
+      "replication": 2,
+      "hdfs_verified": true
+    }
+  ],
+  "large_manifest": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/manifests/72600a82e5b941429defd2d8f4c396f7.json",
+  "replication_proof": [
+    {
+      "uri": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/history/trips.parquet",
+      "blocks": 3,
+      "minimum_live_replicas": 2,
+      "data_nodes": [
+        "172.18.0.3:9866",
+        "172.18.0.4:9866"
+      ]
+    },
+    {
+      "uri": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/publications/72600a82e5b941429defd2d8f4c396f7/replay/trips.parquet",
+      "blocks": 2,
+      "minimum_live_replicas": 2,
+      "data_nodes": [
+        "172.18.0.3:9866",
+        "172.18.0.4:9866"
+      ]
+    },
+    {
+      "uri": "hdfs://namenode:8020/nyc-taxi-acceptance/45038ec3878a40ae92e533a6cb55a87a/raw/trips/c7bc5885678e07c40a7c9a06ca817d54c386c89d5a97c6407bcff92b3ab0a07c/yellow_tripdata_2025-01.parquet",
+      "sha256": "c7bc5885678e07c40a7c9a06ca817d54c386c89d5a97c6407bcff92b3ab0a07c",
+      "bytes": 21174441,
+      "replication": 2,
+      "blocks": 21
+    }
+  ],
+  "kafka": {
+    "messages_received": 5,
+    "unique_event_ids": 4
+  },
+  "replay_after_local_staging_removed": true,
+  "stable_event_ids": true,
+  "read_with_one_datanode_down": true,
+  "underreplicated_publish_rejected": true,
+  "replicas_restored_after_restart": true
+}

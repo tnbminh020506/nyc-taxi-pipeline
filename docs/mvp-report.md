@@ -21,6 +21,8 @@ Nhóm trưởng ghi dataset và bộ lọc API, số trang và số dòng, Zone 
 
 ## Bàn giao Chính — Data Ingestion
 
+Cập nhật HDFS theo docs Minh: đã merge `origin/main` (`0d1b775`), triển khai lưu raw Parquet/outputs/lookup/provenance/manifest trên HDFS, rồi replay từ URI HDFS qua Kafka. Cụm CI thật hai DataNode đã đạt bài 1 triệu dòng **tổng hợp**, thử dừng một DataNode, phục hồi replica và chặn publication thiếu bản sao. **57 test Windows/Ubuntu + 2 Kafka đạt**. [Hướng dẫn HDFS](hdfs.md) · [bằng chứng và giới hạn](hdfs-validation.md).
+
 Cập nhật tỉ lệ demo theo số dòng hợp lệ: **8.461/5.651 (59,96%/40,04%)**; benchmark local mới **4.232.215/2.820.532 (60,008%/39,992%)**, đối chiếu đầy đủ đạt. Config và benchmark giữ thứ tự thời gian, không chia ngẫu nhiên. CI thường không gọi TLC; [prompt làm ban đêm](overnight-ingestion.md) và [bằng chứng cập nhật](duckdb-validation.md).
 
 Hiện tại: DuckDB/TLC đã đạt 49 test trên Windows/Ubuntu, 2 ca Kafka thật, hai lượt local 7.052.716 dòng và một lượt HTTPS cả năm 48.722.567 dòng. [Số liệu và bằng chứng đầy đủ](duckdb-validation.md). Nội dung API dưới đây giữ theo thời điểm nghiệm thu cũ.

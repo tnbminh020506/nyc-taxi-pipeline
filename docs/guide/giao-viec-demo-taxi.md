@@ -63,7 +63,7 @@ flowchart TD
 - **Mục đích.** Bàn giao dữ liệu trên hệ phân tán để các thành viên đọc từ môi trường của mình; lưu trước, phát lại sau.
 - **Đầu vào.** Parquet tháng TLC đã tải/cache, CSV Taxi Zone Lookup, hai kỳ đã chốt và thư mục gốc HDFS chung.
 - **Việc cần làm.** Lưu Parquet nguồn nguyên bản trên HDFS trước khi xử lý. DuckDB tạo Parquet riêng history/replay; công bố hai file, CSV lookup và provenance `source.json` trên HDFS. Manifest ghi URI HDFS, vai trò, phạm vi, số dòng và checksum. Chỉ ghi `ready` khi mọi file đã hoàn tất, kiểm tra nội dung và số bản sao; không công bố file đang upload.
-- **Đầu ra.** URI manifest HDFS; `parquet_path` HDFS đưa history sang 2.2 và replay sang 1.3. `raw_path` trỏ đến provenance hoặc CSV lookup trên HDFS; manifest/provenance có URI và checksum các Parquet nguồn thật. Bảo nhận CSV qua `zone_lookup`. JSON API mẫu cũ có thể lưu trên HDFS khi chạy fixture; nguồn TLC hiện tại là Parquet nên không tạo JSON chuyến giả.
+- **Đầu ra.** URI manifest HDFS; `parquet_path` HDFS đưa history sang 2.2 và replay sang 1.3. `raw_path` trỏ đến provenance hoặc CSV lookup trên HDFS; manifest/provenance có URI và checksum các Parquet nguồn thật. Bảo nhận CSV qua `zone_lookup`. JSON API mẫu cũ giữ để kiểm thử local; bộ mẫu HDFS dùng Parquet cùng hợp đồng dữ liệu. Nguồn TLC hiện tại là Parquet nên không tạo JSON chuyến giả.
 
 ### 1.3. Đọc lại chuyến đi và tạo sự kiện đón khách
 

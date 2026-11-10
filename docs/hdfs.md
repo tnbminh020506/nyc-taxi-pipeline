@@ -46,6 +46,8 @@ Bộ demo: history 06/01/2025 08:00–10:00, replay 20/01/2025 08:00–10:00 gi�
 4. Chỉ sau khi mọi file đạt mới upload/RENAME manifest v1 vào URI mới `/nyc-taxi/manifests/<publication_id>.json`. Đây là file **bất biến**, không có bước xóa manifest cũ rồi thay bằng file mới.
 5. Ghi receipt local `data/hdfs-publication.local.json` trạng thái ready cùng URI/hash manifest. Lỗi ở bất kỳ bước nào ghi failed; replay dùng receipt sẽ dừng. File staging/remote chưa công bố có thể còn để chẩn đoán, không tự xóa dữ liệu cũ.
 
+Chạy không truyền `--role` để công bố đủ history/replay/lookup trong cùng snapshot. Nếu chỉ chọn một role, snapshot mới chỉ chứa các role được yêu cầu; snapshot cũ vẫn truy cập được bằng URI đã pin. Một writer quản lý một receipt local.
+
 `raw_path` của trip trỏ đến thư mục provenance HDFS; `original_sources`/`hdfs_originals` ghi URI, hash, bytes của Parquet tháng gốc thực sự được lưu. `parquet_path` và lookup `raw_path` là URI HDFS. Manifest vẫn version 1, giữ các cột/schema và khóa vai trò–nguồn–phạm vi đã thống nhất. `replication` là yêu cầu; publisher kiểm tra số vị trí block thực tế trước khi công bố, không chỉ đọc giá trị cấu hình.
 
 ## Đọc lại và bàn giao
@@ -84,6 +86,6 @@ CI `hdfs-roundtrip` dựng Hadoop thật với hai DataNode và Kafka thật, r�
 
 Input stress **tổng hợp 1 triệu dòng**, không gọi TLC: kiểm tra raw nguyên bản, toàn bộ output/checksum, số dòng 60/40, nhiều block và hai replica. Sau đó một snapshot nhỏ kiểm tra HDFS → replay → Kafka, gửi lại giữ ID; xóa staging/receipt/cache của producer để chứng minh đọc từ HDFS; dừng một DataNode để kiểm tra đọc qua bản sao còn lại; từ chối publish mới khi chưa đủ hai replica, rồi khởi động lại và kiểm tra phục hồi. Script fault-test chỉ quản lý service `datanode-2` của Compose project `taxi-hdfs` do hướng dẫn này tạo.
 
-Kết quả thực tế sẽ được ghi trong [báo cáo nghiệm thu HDFS](hdfs-validation.md). Bằng chứng DuckDB/TLC 48,7 triệu dòng trước đây không được coi là bằng chứng đã lưu lượng đó trên HDFS.
+Đã nghiệm thu thành công trên CI với dữ liệu tổng hợp và lỗi một DataNode; kết quả thực tế được ghi trong [báo cáo nghiệm thu HDFS](hdfs-validation.md). Bằng chứng DuckDB/TLC 48,7 triệu dòng trước đây không được coi là bằng chứng đã lưu lượng đó trên HDFS.
 
 Tham khảo: [Apache WebHDFS 3.4.2](https://hadoop.apache.org/docs/r3.4.2/hadoop-project-dist/hadoop-hdfs/WebHDFS.html), [thiết lập cụm Hadoop](https://hadoop.apache.org/docs/r3.4.2/hadoop-project-dist/hadoop-common/ClusterSetup.html).

@@ -14,7 +14,7 @@ Cập nhật từ Minh (`origin/main`, commit `0d1b775`): dùng **HDFS chung** �
 
 Nhánh `demo/ingestion` triển khai phần Chính (1.1–1.4): TLC Parquet → HDFS dùng chung → DuckDB → Parquet/manifest HDFS → replay → Kafka.
 Đã nghiệm thu xuất **48.722.567 dòng thật của 12 tháng 2025** và đối chiếu toàn bộ đầu ra; xem [số liệu, CI và giới hạn CDN](docs/duckdb-validation.md).
-Xem [cách cài, chạy bộ mẫu, cấu hình DuckDB/Kafka và hợp đồng bàn giao](docs/ingestion.md). Luồng tích hợp mới: [HDFS trước khi replay](docs/hdfs.md), cấu hình `configs/hdfs.example.yaml`.
+Xem [cách cài, chạy bộ mẫu, cấu hình DuckDB/Kafka và hợp đồng bàn giao](docs/ingestion.md). Luồng tích hợp mới: [HDFS trước khi replay](docs/hdfs.md), cấu hình `configs/hdfs.example.yaml`. [HDFS/Kafka thật đã nghiệm thu với 1 triệu dòng tổng hợp và lỗi một DataNode](docs/hdfs-validation.md).
 Demo hiện tại chia khoảng **60/40 theo số dòng hợp lệ**: history 8.461, replay 5.651; dùng cache cho các lượt chạy lại. [Hướng dẫn giao việc ban đêm cho agent](docs/overnight-ingestion.md).
 Phần Spark và PostgreSQL vẫn theo phân công bên dưới, chờ tích hợp với Mạnh và Bảo.
 
@@ -31,7 +31,7 @@ Xem sơ đồ và yêu cầu đầu vào, đầu ra của từng bước trong [
 | Bước | Phụ trách | File cần đọc hoặc triển khai | Bàn giao |
 | --- | --- | --- | --- |
 | **1.1** Lấy chuyến đi từ TLC qua DuckDB | Chính, nhóm trưởng chốt mẫu | [Cấu hình DuckDB/TLC](configs/demo.example.yaml) · [Tiếp nhận nguồn](src/nyc_taxi_pipeline/ingestion/tlc.py) | Parquet và thông tin file nguồn/bộ lọc cho hai kỳ `history` và `replay` |
-| **1.2** Lưu nguồn, provenance, Parquet và manifest trên HDFS | Chính | [Điểm chạy nhập](scripts/run_ingestion.py) · [Lưu dữ liệu](src/nyc_taxi_pipeline/ingestion/tlc.py) · [Manifest](src/nyc_taxi_pipeline/ingestion/manifest.py) | URI manifest HDFS, `parquet_path` HDFS cho batch/replay, `raw_path` HDFS của lookup cho Bảo |
+| **1.2** Lưu nguồn, provenance, Parquet và manifest trên HDFS | Chính | [Điểm chạy nhập](scripts/run_ingestion.py) · [Publisher HDFS](src/nyc_taxi_pipeline/ingestion/hdfs.py) · [Manifest](src/nyc_taxi_pipeline/ingestion/manifest.py) | URI manifest HDFS, `parquet_path` HDFS cho batch/replay, `raw_path` HDFS của lookup cho Bảo |
 | **1.3** Đọc chuyến đi và tạo sự kiện | Chính | [Điểm chạy replay](scripts/replay_taxi_stream.py) · [Chương trình replay](src/nyc_taxi_pipeline/ingestion/replay.py) | Sự kiện pickup có mã phiên, mã sự kiện, giờ đón, vùng đón và file Parquet replay |
 | **1.4** Đưa sự kiện vào Kafka | Chính, phối hợp nhóm trưởng | [Chương trình replay](src/nyc_taxi_pipeline/ingestion/replay.py) · [Kafka ingestion](docker-compose.ingestion.yml) | Topic `taxi-events` mà Spark có thể đọc |
 | **2.1** Chuẩn hóa thời gian và dữ liệu | Mạnh, thống nhất với Chính và Bảo | [Quy tắc pickup](src/nyc_taxi_pipeline/processing/pickup.py) | Quy tắc hợp lệ và phân cửa sổ dùng chung cho batch và stream |

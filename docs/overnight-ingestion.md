@@ -13,7 +13,7 @@
 
 ## Yêu cầu HDFS mới đã merge từ Minh
 
-Đọc thêm `docs/hdfs.md`, `docs/hdfs-validation.md`, `configs/hdfs.example.yaml` và `ingestion/hdfs.py`. Luồng bắt buộc: Parquet nguồn nguyên bản lưu HDFS → DuckDB xử lý cache có checksum → output/lookup/provenance/manifest HDFS → replay đọc HDFS → Kafka. Không bỏ HDFS hoặc quay về local manifest khi upload lỗi. Chỉ ready sau SHA-256 và hai vị trí block thực tế. Giữ URI manifest bất biến để consumer pin phiên bản. Không coi hai DataNode Docker cùng host là chịu lỗi mất cả host. Không tự cài Docker/WSL lên Windows; dùng CI HDFS thật đã cấu hình, không mở live TLC.
+Đọc thêm `docs/hdfs.md`, `docs/hdfs-validation.md`, `configs/hdfs.example.yaml` và `ingestion/hdfs.py`. Luồng bắt buộc: Parquet nguồn nguyên bản lưu HDFS → DuckDB xử lý cache có checksum → output/lookup/provenance/manifest HDFS → replay đọc HDFS → Kafka. Không bỏ HDFS hoặc quay về local manifest khi upload lỗi. Chỉ ready sau SHA-256 và hai vị trí block thực tế. Giữ URI manifest bất biến để consumer pin phiên bản. Không coi hai DataNode Docker cùng host là chịu lỗi mất cả host. Đã có bằng chứng CI thật 1 triệu dòng tổng hợp, hai replica, Kafka và lỗi một DataNode trong `docs/hdfs-validation.md`; không chạy lại bài lớn khi không có thay đổi cần xác minh. Không tự cài Docker/WSL lên Windows; dùng CI HDFS thật đã cấu hình, không mở live TLC.
 
 ## Đọc trước khi sửa
 
