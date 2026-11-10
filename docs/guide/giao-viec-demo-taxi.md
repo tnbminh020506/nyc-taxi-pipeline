@@ -4,7 +4,7 @@
 
 Demo trả lời câu hỏi **“Khu vực nào ghi nhận nhiều chuyến đón khách hơn mức lịch sử trong cùng khung 15 phút?”**
 
-Hệ thống lấy dữ liệu chuyến đi Yellow Taxi từ **NYC Open Data API**. Tầng **ingestion** lưu phản hồi gốc và tạo hai tập Parquet từ hai khoảng thời gian đã chọn, gồm tập lịch sử và tập phát lại.
+Hệ thống lấy dữ liệu chuyến đi Yellow Taxi từ **NYC Open Data API**. Tầng **ingestion** lưu phản hồi gốc, hai tập Parquet `history` và `replay`, cùng manifest trên **HDFS dùng chung**.
 
 Tầng **processing** dùng Spark Batch để tính số chuyến đón khách trung bình theo khu vực, thứ trong tuần và khung 15 phút. Với tập phát lại, Python tạo các sự kiện đón khách và gửi dần qua Kafka. Spark Structured Streaming đọc các sự kiện đó để đếm số chuyến theo khu vực trong từng cửa sổ 15 phút.
 
@@ -14,7 +14,7 @@ Tầng **data warehouse** lưu kết quả tổng hợp của hai nhánh vào c�
 flowchart TD
     TLC["NYC Open Data API · Yellow Taxi"]
     TLC --> SOURCE["1.1 · Gọi API theo khoảng thời gian"]
-    SOURCE --> RAW["1.2 · Lưu phản hồi gốc, tạo Parquet và manifest"]
+    SOURCE --> RAW["1.2 · HDFS dùng chung<br/>JSON gốc, Parquet, CSV lookup và manifest"]
 
     RAW -->|"Chuyến đi lịch sử"| BATCH["2.2 · Spark Batch"]
     RAW -->|"Chuyến đi dành cho phát lại"| REPLAY["1.3 · Python Replay"]
@@ -34,14 +34,14 @@ flowchart TD
 
 | Phần | Phụ trách | Kết quả cần bàn giao |
 | --- | --- | --- |
-| 1. Data Ingestion | Chính | Phản hồi API gốc, Parquet cho hai tập, manifest và sự kiện phát lại qua Kafka |
+| 1. Data Ingestion | Chính | Dữ liệu gốc, Parquet và manifest trên HDFS, cùng sự kiện phát lại qua Kafka |
 | 2. Data Processing | Mạnh | Mức lịch sử từ batch và số chuyến từ stream |
 | 3. Data Warehouse | Bảo | Các bảng PostgreSQL, cách nạp và truy vấn demo |
 | 4. Kiểm tra toàn tuyến | Nhóm trưởng cùng ba thành viên | Bộ mẫu chung, kết quả đối chiếu và hướng dẫn chạy |
 
 ## 1. Data Ingestion — Chính
 
-**Mục tiêu giai đoạn.** Đưa dữ liệu từ NYC Open Data API vào workspace dưới dạng mà hai nhánh xử lý có thể dùng được. Chính lấy đúng các khoảng thời gian nhóm đã chốt, lưu lại phản hồi để đối chiếu, tạo Parquet và ghi rõ từng tập trong manifest. Với tập replay, Chính còn phụ trách phát các sự kiện pickup qua Kafka để Mạnh có thể đọc dần.
+**Mục tiêu giai đoạn.** Đưa dữ liệu từ NYC Open Data API vào HDFS dùng chung để các thành viên đọc được từ môi trường của mình. Chính lấy đúng các khoảng thời gian nhóm đã chốt, lưu phản hồi để đối chiếu, tạo Parquet và ghi rõ từng tập trong manifest. Với tập replay, Chính đọc Parquet từ HDFS và phát các sự kiện pickup qua Kafka để Mạnh có thể đọc dần.
 
 ### 1.1. Lấy dữ liệu chuyến đi qua NYC Open Data API
 
@@ -52,17 +52,17 @@ flowchart TD
 
 [Dataset Yellow Taxi 2025](https://data.cityofnewyork.us/Transportation/2025-Yellow-Taxi-Trip-Data/irx2-vgm4/about_data) · [Tài liệu endpoint SODA](https://dev.socrata.com/docs/endpoints.html).
 
-### 1.2. Lưu phản hồi gốc, tạo Parquet và lập manifest
+### 1.2. Lưu phản hồi gốc, Parquet và manifest trên HDFS
 
 - **Mục đích.** Giữ dữ liệu API để đối chiếu, đồng thời tạo đầu vào đọc được cho batch và replay.
-- **Đầu vào.** JSON và thông tin tải từ bước 1.1, cùng CSV Taxi Zone Lookup.
-- **Việc cần làm.** Lưu các trang JSON và CSV lookup nguyên bản. Tạo Parquet riêng cho `history` và `replay` theo schema đã thống nhất. Manifest ghi mã nguồn, vai trò, khoảng thời gian, `raw_path`, `parquet_path` nếu có và trạng thái. Chỉ công bố `ready` khi đã tải đủ phạm vi và file đầu ra đã hoàn chỉnh.
-- **Đầu ra.** `raw_path` trỏ đến phản hồi gốc hoặc CSV lookup. `parquet_path` trỏ đến Parquet `history` cho bước 2.2 hoặc Parquet `replay` cho bước 1.3. Bảo dùng mục `zone_lookup` ở bước 3.2.
+- **Đầu vào.** JSON và thông tin tải từ bước 1.1, CSV Taxi Zone Lookup và thư mục gốc trên HDFS mà nhóm đã thống nhất.
+- **Việc cần làm.** Lưu JSON và CSV lookup nguyên bản trên HDFS. Tạo và lưu Parquet riêng cho `history` và `replay` theo schema đã thống nhất. Công bố manifest trên HDFS với mã nguồn, vai trò, khoảng thời gian, `raw_path`, `parquet_path` nếu có và trạng thái. Chỉ ghi `ready` khi đã tải đủ phạm vi và file đầu ra trên HDFS đã hoàn chỉnh.
+- **Đầu ra.** URI của manifest trên HDFS. Trong manifest, `raw_path` trỏ đến phản hồi gốc hoặc CSV lookup. `parquet_path` là URI HDFS của tập `history` cho bước 2.2 hoặc tập `replay` cho bước 1.3. Bảo dùng `raw_path` của mục `zone_lookup` ở bước 3.2.
 
 ### 1.3. Đọc lại chuyến đi và tạo sự kiện đón khách
 
 - **Mục đích.** Mô phỏng một nguồn gửi sự kiện theo thời gian để Spark có dữ liệu đến dần.
-- **Đầu vào.** File và phạm vi `replay` từ bước 1.2, mã phiên phát lại và cấu hình tốc độ phát.
+- **Đầu vào.** URI HDFS và phạm vi `replay` từ manifest ở bước 1.2, mã phiên phát lại và cấu hình tốc độ phát.
 - **Việc cần làm.** Viết chương trình Python đọc các dòng theo thời điểm đón khách và gửi dần sang Kafka. Mỗi dòng trong bộ mẫu có một `event_id` ổn định khi gửi lại. Chỉ đưa vào sự kiện các thông tin đã biết lúc đón khách.
 - **Đầu ra.** Các sự kiện JSON gửi đến bước 1.4. Mỗi sự kiện có `replay_id` (mã phiên), `event_id` (mã sự kiện), `pickup_at` (thời điểm đón), `pickup_zone_id` (mã vùng đón) và `source_file` (file Parquet replay để đối chiếu qua manifest).
 
@@ -87,7 +87,7 @@ flowchart TD
 ### 2.2. Tính mức lịch sử bằng Spark Batch
 
 - **Mục đích.** Trả lời “Khu vực này thường có bao nhiêu chuyến vào thứ và khung giờ đang xét?”
-- **Đầu vào.** File `history` đã sẵn sàng, phạm vi trong manifest và quy tắc từ 2.1.
+- **Đầu vào.** File `history` đã sẵn sàng tại `parquet_path` trên HDFS, phạm vi trong manifest và quy tắc từ 2.1.
 - **Việc cần làm.** Đếm chuyến theo từng khu vực và từng cửa sổ lịch sử. Sau đó lấy trung bình các cửa sổ có cùng thứ và khung giờ, ví dụ các thứ Hai từ 08:00 đến 08:15. Chỉ dùng các cửa sổ có độ phủ đã xác nhận, tính cả cửa sổ thực sự có 0 chuyến.
 - **Đầu ra.** Một dòng cho mỗi khu vực, thứ và khung giờ, gồm `pickup_zone_id`, `iso_weekday`, `slot_15m`, `baseline_trip_count` và `reference_windows` (số cửa sổ dùng để tính). Bàn giao kèm phạm vi lịch sử cho bước 3.2.
 
@@ -113,7 +113,7 @@ flowchart TD
 
 - **Mục đích.** Đưa đầu ra của hai nhánh vào kho để SQL có thể truy vấn.
 - **Đầu vào.** Các bảng ở 3.1, Zone Lookup ở 1.2, mức lịch sử ở 2.2 và số đếm cửa sổ ở 2.3.
-- **Việc cần làm.** Nạp lookup và mức lịch sử. Khi nhận tổng mới từ stream, cập nhật dòng theo khóa phiên–vùng–cửa sổ. Kiểm tra nạp lại cùng một đầu ra để xác nhận số dòng và số chuyến giữ nguyên.
+- **Việc cần làm.** Nạp lookup từ URI HDFS trong manifest và nạp mức lịch sử. Nếu dùng `psql \copy`, tải CSV từ HDFS về file tạm trên máy chạy `psql` trước khi nạp. Khi nhận tổng mới từ stream, cập nhật dòng theo khóa phiên–vùng–cửa sổ. Kiểm tra nạp lại cùng một đầu ra để xác nhận số dòng và số chuyến giữ nguyên.
 - **Đầu ra.** Ba bảng có dữ liệu trong PostgreSQL, sẵn sàng cho bước 3.3.
 
 ### 3.3. Truy vấn kết quả demo
@@ -129,7 +129,7 @@ flowchart TD
 
 - **Mục đích.** Kiểm tra từng điểm bàn giao và kết quả cuối trước khi chạy trên mẫu TLC thật.
 - **Đầu vào.** Các trang JSON mẫu theo schema API và CSV lookup có một vùng A. Hai cửa sổ lịch sử 08:00–08:15 vào hai thứ Hai trước kỳ replay có lần lượt 1 và 3 chuyến. Vào thứ Hai của kỳ replay có các chuyến lúc 08:01, 08:05, 08:14 và 08:15. Ca gửi trùng phát lại một sự kiện với cùng mã.
-- **Việc cần làm.** Chuẩn bị Kafka và các bảng PostgreSQL. Nhập JSON mẫu và tạo Parquet, chạy batch, khởi động stream rồi phát sự kiện. Cuối cùng chạy SQL với mã phiên và cửa sổ muốn xem.
+- **Việc cần làm.** Chuẩn bị HDFS dùng chung, Kafka và các bảng PostgreSQL. Nhập JSON mẫu và công bố Parquet, CSV, manifest trên HDFS. Kiểm tra Spark Batch và Python replay đọc được URI đã bàn giao, rồi chạy batch, khởi động stream, phát sự kiện và chạy SQL.
 - **Đầu ra.** Mức lịch sử là **2 chuyến** trên hai cửa sổ. Stream ghi **3 chuyến** trong khung 08:00–08:15 và **1 chuyến** trong khung 08:15–08:30. SQL cho vùng A ở khung đầu trả **3 chuyến**, mức lịch sử **2**, chênh lệch **+50%**.
 
 ### 4.2. Chạy lại với dữ liệu lấy qua NYC Open Data API và bàn giao
