@@ -15,3 +15,4 @@ __pycache__/
 /configs/*.local.yaml
 manifest.local.json
 imported.local.yaml
+/data/hdfs-publication.local.json

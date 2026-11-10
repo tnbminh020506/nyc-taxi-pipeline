@@ -14,7 +14,7 @@ Cập nhật từ Minh (`origin/main`, commit `0d1b775`): dùng **HDFS chung** �
 
 Nhánh `demo/ingestion` triển khai phần Chính (1.1–1.4): TLC Parquet → HDFS dùng chung → DuckDB → Parquet/manifest HDFS → replay → Kafka.
 Đã nghiệm thu xuất **48.722.567 dòng thật của 12 tháng 2025** và đối chiếu toàn bộ đầu ra; xem [số liệu, CI và giới hạn CDN](docs/duckdb-validation.md).
-Xem [cách cài, chạy bộ mẫu, cấu hình DuckDB/Kafka và hợp đồng bàn giao](docs/ingestion.md).
+Xem [cách cài, chạy bộ mẫu, cấu hình DuckDB/Kafka và hợp đồng bàn giao](docs/ingestion.md). Luồng tích hợp mới: [HDFS trước khi replay](docs/hdfs.md), cấu hình `configs/hdfs.example.yaml`.
 Demo hiện tại chia khoảng **60/40 theo số dòng hợp lệ**: history 8.461, replay 5.651; dùng cache cho các lượt chạy lại. [Hướng dẫn giao việc ban đêm cho agent](docs/overnight-ingestion.md).
 Phần Spark và PostgreSQL vẫn theo phân công bên dưới, chờ tích hợp với Mạnh và Bảo.
 

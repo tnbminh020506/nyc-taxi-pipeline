@@ -9,12 +9,14 @@ on:
       - 'scripts/*ingestion*'
       - 'scripts/replay_taxi_stream.py'
       - 'scripts/benchmark_tlc.py'
+      - 'scripts/test_hdfs_pipeline.py'
       - 'tests/**'
       - 'configs/**'
       - 'data/fixtures/**'
       - '*requirements*.txt'
       - 'pytest.ini'
       - 'docker-compose.ingestion.yml'
+      - 'docker-compose.hdfs.yml'
       - '.github/workflows/ingestion.yml'
   workflow_dispatch:
     inputs:
@@ -82,3 +84,27 @@ jobs:
         with:
           name: tlc-live-volume-evidence
           path: output/tlc-ci-report.json
+
+  hdfs-roundtrip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: python -m pip install -r requirements-dev.txt
+      - run: docker compose -p taxi-hdfs -f docker-compose.hdfs.yml up -d --wait --wait-timeout 240
+      - run: docker compose -p taxi-kafka-hdfs -f docker-compose.ingestion.yml up -d --wait --wait-timeout 180
+      - run: python scripts/test_hdfs_pipeline.py --rows 1000000 --fault-test --report output/hdfs-acceptance/report.json
+      - if: failure()
+        run: docker compose -p taxi-hdfs -f docker-compose.hdfs.yml logs --tail 100
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hdfs-acceptance-evidence
+          path: output/hdfs-acceptance/report.json
+      - if: always()
+        run: docker compose -p taxi-kafka-hdfs -f docker-compose.ingestion.yml down
+      - if: always()
+        run: docker compose -p taxi-hdfs -f docker-compose.hdfs.yml down

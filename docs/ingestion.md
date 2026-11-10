@@ -1,5 +1,7 @@
 # Phần Chính: DuckDB ingestion và replay qua Kafka
 
+> Yêu cầu mới từ Minh đã merge: bàn giao qua **HDFS dùng chung trước**, sau đó đọc replay từ HDFS → Kafka. Dùng `configs/hdfs.example.yaml` theo [hướng dẫn HDFS](hdfs.md). Các bước local bên dưới vẫn là chế độ staging/kiểm thử độc lập; local-ready không thay thế HDFS-ready.
+
 Theo thay đổi phân công ngày 10/11/2026, bước 1.1 dùng **DuckDB đọc trực tiếp Parquet tháng của TLC**, thay cho SODA v2/v3. Không cần tài khoản hoặc `SOCRATA_APP_TOKEN`. Nhánh `demo/ingestion` vẫn xuất phát từ `demo/mvp`; hai điểm chạy của nhóm được giữ nguyên.
 
 ```text

@@ -1,0 +1,68 @@
+# Shared storage demo: one NameNode + TWO DataNodes, replication=2.
+# All containers run on one Docker host; this does not provide host-level HA.
+services:
+  namenode:
+    image: apache/hadoop:3.4.2
+    hostname: namenode
+    user: root
+    env_file: ./configs/hdfs/hadoop.env
+    environment:
+      HDFS-SITE.XML_dfs.namenode.name.dir: /data/name
+      HADOOP_HEAPSIZE_MAX: '512'
+    command:
+      - bash
+      - -c
+      - 'if [ ! -f /data/name/current/VERSION ]; then hdfs namenode -format -nonInteractive || exit 1; fi; exec hdfs namenode'
+    ports:
+      - '127.0.0.1:9870:9870'
+      - '127.0.0.1:8020:8020'
+    volumes:
+      - hdfs-namenode:/data
+    healthcheck:
+      test: ['CMD-SHELL', "hdfs dfsadmin -report | grep -q 'Live datanodes (2)' && hdfs dfsadmin -safemode get | grep -q OFF"]
+      interval: 5s
+      timeout: 15s
+      retries: 36
+      start_period: 20s
+
+  datanode-1:
+    image: apache/hadoop:3.4.2
+    hostname: datanode-1
+    user: root
+    env_file: ./configs/hdfs/hadoop.env
+    environment:
+      HDFS-SITE.XML_dfs.datanode.data.dir: /data/blocks
+      HDFS-SITE.XML_dfs.datanode.hostname: datanode-1
+      HADOOP_HEAPSIZE_MAX: '256'
+    command: ['hdfs', 'datanode']
+    depends_on:
+      namenode:
+        condition: service_started
+    ports:
+      - '127.0.0.1:9864:9864'
+    volumes:
+      - hdfs-datanode-1:/data
+
+  datanode-2:
+    image: apache/hadoop:3.4.2
+    hostname: datanode-2
+    user: root
+    env_file: ./configs/hdfs/hadoop.env
+    environment:
+      HDFS-SITE.XML_dfs.datanode.data.dir: /data/blocks
+      HDFS-SITE.XML_dfs.datanode.hostname: datanode-2
+      HDFS-SITE.XML_dfs.datanode.http.address: 0.0.0.0:9865
+      HADOOP_HEAPSIZE_MAX: '256'
+    command: ['hdfs', 'datanode']
+    depends_on:
+      namenode:
+        condition: service_started
+    ports:
+      - '127.0.0.1:9865:9865'
+    volumes:
+      - hdfs-datanode-2:/data
+
+volumes:
+  hdfs-namenode:
+  hdfs-datanode-1:
+  hdfs-datanode-2:

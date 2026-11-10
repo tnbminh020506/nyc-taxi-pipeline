@@ -84,6 +84,27 @@ def load_config(path):
     kind = config.get("source", {}).get("kind", "api")
     if kind not in ("api", "tlc_parquet"):
         raise ValueError("source.kind must be api or tlc_parquet")
+    storage = config.get("storage", {})
+    if storage.get("kind", "local") not in ("local", "hdfs"):
+        raise ValueError("storage.kind must be local or hdfs")
+    if storage.get("kind") == "hdfs":
+        from urllib.parse import urlsplit
+        fs_uri = urlsplit(storage.get("fs_uri", ""))
+        endpoint = urlsplit(storage.get("webhdfs_url", ""))
+        if fs_uri.scheme != "hdfs" or not fs_uri.netloc or fs_uri.path not in ("", "/"):
+            raise ValueError("storage.fs_uri must be hdfs://namenode:port")
+        if endpoint.scheme not in ("http", "https") or not endpoint.netloc or endpoint.path not in ("", "/"):
+            raise ValueError("storage.webhdfs_url must be an HTTP(S) NameNode origin")
+        replication = storage.get("replication", 2)
+        if isinstance(replication, bool) or not isinstance(replication, int) or not 2 <= replication <= 10:
+            raise ValueError("storage.replication must be 2..10 for distributed publication")
+        root = storage.get("root", "/nyc-taxi")
+        if not isinstance(root, str) or not root.startswith("/") or ".." in root.split("/") or root == "/":
+            raise ValueError("storage.root must be a dedicated absolute HDFS directory")
+        for name, default in (("timeout_seconds", 60), ("replication_wait_seconds", 60)):
+            value = storage.get(name, default)
+            if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 600:
+                raise ValueError(f"storage.{name} must be an integer from 1 to 600")
     if kind == "tlc_parquet":
         if config.get("source_timezone", "America/New_York") != "America/New_York":
             raise ValueError("TLC timestamps must use source_timezone America/New_York")

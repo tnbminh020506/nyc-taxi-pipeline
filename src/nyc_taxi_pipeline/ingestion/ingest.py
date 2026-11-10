@@ -412,6 +412,9 @@ def ingest_lookup(config, session):
 
 
 def run_ingestion(config, roles=("history", "replay", "zone_lookup")):
+    if config.get("storage", {}).get("kind", "local") == "hdfs":
+        from .hdfs import run_hdfs_ingestion
+        return run_hdfs_ingestion(config, roles)
     if config.get("source", {}).get("kind", "api") == "tlc_parquet":
         from .tlc import ingest_tlc
         with http_session(config.get("api")) as session:

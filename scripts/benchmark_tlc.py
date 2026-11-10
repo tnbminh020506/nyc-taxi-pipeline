@@ -172,6 +172,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     root = Path(__file__).resolve().parents[1]
     config = load_config(root / "configs/demo.example.yaml")
+    config["storage"] = {"kind": "local"}  # This benchmark measures DuckDB only, not distributed publication.
     output = root / "output" / f"tlc-benchmark-{args.months}months"
     config["paths"] = {"raw": str(output / "raw"), "parquet": str(output / "parquet"),
                        "manifest": str(output / "manifest.json")}

@@ -38,7 +38,11 @@ LOG = logging.getLogger(__name__)
 def replay_entries(config):
     section = config["datasets"]["replay"]
     key = entry_key({"dataset_role": "replay", "source_id": dataset_source_id(config), **section})
-    manifest = read_manifest(resolve_path(config, config["paths"]["manifest"]))
+    if config.get("storage", {}).get("kind", "local") == "hdfs":
+        from .hdfs import hdfs_manifest
+        manifest = hdfs_manifest(config)
+    else:
+        manifest = read_manifest(resolve_path(config, config["paths"]["manifest"]))
     entries = [entry for entry in manifest["datasets"]
                if entry["dataset_role"] == "replay" and entry_key(entry) == key and entry["status"] == "ready"]
     if not entries:
@@ -57,7 +61,17 @@ def iter_events(config, replay_id, stats=None):
         with closing(sqlite3.connect(str(Path(temporary) / "events.sqlite"))) as connection:
             connection.execute("CREATE TABLE events (pickup INTEGER, event_id TEXT, payload TEXT)")
             for entry in entries:
-                path = Path(entry["parquet_path"])
+                source_file = entry["parquet_path"]
+                if config.get("storage", {}).get("kind", "local") == "hdfs":
+                    from .hdfs import WebHDFS
+                    if entry.get("storage_kind") != "hdfs" or not entry.get("hdfs_verified"):
+                        raise ValueError("Replay requires a verified HDFS publication")
+                    cache = resolve_path(config, config["storage"].get("replay_cache", "output/hdfs-replay-cache"))
+                    with WebHDFS(config) as client:
+                        path = client.download(source_file, cache / f"{entry['parquet_sha256']}.parquet",
+                                               entry["parquet_sha256"])
+                else:
+                    path = Path(source_file)
                 checksum = file_sha256(path)
                 if entry.get("parquet_sha256") != checksum:
                     raise ValueError(f"Parquet checksum differs from manifest: {path}")
@@ -86,7 +100,7 @@ def iter_events(config, replay_id, stats=None):
                         event_id = hashlib.sha256(f"{identity}:{current_row}".encode()).hexdigest()
                         payload = {"replay_id": replay_id, "event_id": event_id,
                                    "pickup_at": pickup.isoformat(), "pickup_zone_id": zone,
-                                   "source_file": str(path)}
+                                   "source_file": source_file}
                         insertions.append((int(pickup.timestamp() * 1_000_000), event_id,
                                            json.dumps(payload, ensure_ascii=False)))
                     connection.executemany("INSERT INTO events VALUES (?, ?, ?)", insertions)

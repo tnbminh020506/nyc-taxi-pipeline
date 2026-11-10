@@ -11,6 +11,10 @@
 - Yêu cầu Chính đã xác nhận: history lớn hơn replay, tỉ lệ khoảng **3:2 theo số bản ghi hợp lệ (60%/40%)**, không tính theo độ dài thời gian. Ghi số dòng thực tế; không gọi phép chia 1:1 là 3:2. Giữ hai kỳ không giao nhau, history trước replay. Không chia ngẫu nhiên các dòng làm lẫn lịch sử với tương lai.
 - Bộ demo đã chọn: 06/01/2025 và 20/01/2025, cùng 08:00–10:00 New York, history **8.461**, replay **5.651** dòng hợp lệ (59,96%/40,04%), 8 cửa sổ 15 phút mỗi kỳ. `replay_id: tlc-demo-3-2-001`, tốc độ 100 sự kiện/giây (~57 giây + overhead broker). Dùng bộ này nếu không có yêu cầu mới; không tự mở rộng nguồn để làm lại việc đã đạt.
 
+## Yêu cầu HDFS mới đã merge từ Minh
+
+Đọc thêm `docs/hdfs.md`, `docs/hdfs-validation.md`, `configs/hdfs.example.yaml` và `ingestion/hdfs.py`. Luồng bắt buộc: Parquet nguồn nguyên bản lưu HDFS → DuckDB xử lý cache có checksum → output/lookup/provenance/manifest HDFS → replay đọc HDFS → Kafka. Không bỏ HDFS hoặc quay về local manifest khi upload lỗi. Chỉ ready sau SHA-256 và hai vị trí block thực tế. Giữ URI manifest bất biến để consumer pin phiên bản. Không coi hai DataNode Docker cùng host là chịu lỗi mất cả host. Không tự cài Docker/WSL lên Windows; dùng CI HDFS thật đã cấu hình, không mở live TLC.
+
 ## Đọc trước khi sửa
 
 1. `docs/guide/giao-viec-demo-taxi.md`, `docs/ingestion.md`, `docs/duckdb-validation.md`.
