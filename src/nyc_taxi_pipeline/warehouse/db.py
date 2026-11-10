@@ -53,3 +53,4 @@ def managed_connection(conn_or_dsn: Optional[Union[str, Any]] = None) -> Iterato
             conn.close()
     else:
         yield conn_or_dsn
+

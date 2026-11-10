@@ -42,3 +42,4 @@ FROM zone_counts
 ORDER BY
     observed_trip_count DESC,
     pickup_zone_id ASC;
+

@@ -19,3 +19,4 @@ ORDER BY
     b.iso_weekday ASC,
     b.slot_15m ASC
 LIMIT %(limit)s;
+

@@ -272,3 +272,4 @@ def format_table(rows: Sequence[Mapping[str, Any]], max_rows: Optional[int] = No
         else ""
     )
     return "\n".join([header_line, sep_line, *body_lines]) + footer
+

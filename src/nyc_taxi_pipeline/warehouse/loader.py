@@ -403,3 +403,4 @@ class PostgresReplayUpsertSink:
             return
         res = upsert_replay_counts(self.dsn, rows)
         log.info("micro-batch %s: đã upsert %d dòng vào replay_pickup_counts", batch_id, res["loaded_rows"])
+

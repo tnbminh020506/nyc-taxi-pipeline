@@ -34,3 +34,4 @@ FROM replay_pickup_counts r
 LEFT JOIN peak_win pw ON TRUE
 WHERE r.replay_id = %(replay_id)s
 GROUP BY pw.peak_window_start, pw.peak_window_trips;
+
