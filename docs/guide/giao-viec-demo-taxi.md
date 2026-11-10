@@ -4,11 +4,13 @@
 
 > Yêu cầu demo đã chốt: history/replay khoảng **3:2 theo số bản ghi hợp lệ** (60%/40%), history trước replay, không chia ngẫu nhiên. Bộ demo hiện tại dùng hai thứ Hai 06/01 và 20/01/2025, cùng 08:00–10:00 giờ New York: 8.461/5.651 dòng, đạt 59,96%/40,04%. Ưu tiên nguồn đã cache, không gọi lặp TLC khi kiểm thử hoặc phát lại. [Prompt giao agent làm ban đêm](../overnight-ingestion.md).
 
+> Cập nhật tiếp theo từ Minh (`origin/main`, `0d1b775`): **lưu nguồn, Parquet và manifest lên HDFS dùng chung trước**, sau đó Python đọc replay từ HDFS để phát Kafka. Hợp nhất với hướng TLC/DuckDB và tỉ lệ 60/40 đã chốt; các mô tả API cũ trên main không làm thay đổi nguồn chính.
+
 ## Tổng quan luồng quy trình
 
 Demo trả lời câu hỏi **“Khu vực nào ghi nhận nhiều chuyến đón khách hơn mức lịch sử trong cùng khung 15 phút?”**
 
-Hệ thống lấy dữ liệu Yellow Taxi từ **file Parquet tháng của TLC qua DuckDB**. Tầng **ingestion** lọc hai khoảng thời gian đã chọn, tạo Parquet lịch sử/phát lại và lưu provenance nguồn để đối chiếu.
+Hệ thống lấy dữ liệu Yellow Taxi từ **file Parquet tháng của TLC qua DuckDB**. Tầng **ingestion** lọc hai khoảng thời gian đã chọn, lưu Parquet nguồn, Parquet lịch sử/phát lại, CSV lookup, provenance và manifest trên **HDFS dùng chung**.
 
 Tầng **processing** dùng Spark Batch để tính số chuyến đón khách trung bình theo khu vực, thứ trong tuần và khung 15 phút. Với tập phát lại, Python tạo các sự kiện đón khách và gửi dần qua Kafka. Spark Structured Streaming đọc các sự kiện đó để đếm số chuyến theo khu vực trong từng cửa sổ 15 phút.
 
@@ -18,7 +20,7 @@ Tầng **data warehouse** lưu kết quả tổng hợp của hai nhánh vào c�
 flowchart TD
     TLC["TLC Parquet tháng · Yellow Taxi"]
     TLC --> SOURCE["1.1 · DuckDB đọc và lọc Parquet HTTPS"]
-    SOURCE --> RAW["1.2 · Lưu provenance, Parquet và manifest"]
+    SOURCE --> RAW["1.2 · HDFS dùng chung: Parquet nguồn, history/replay, CSV, provenance, manifest"]
 
     RAW -->|"Chuyến đi lịch sử"| BATCH["2.2 · Spark Batch"]
     RAW -->|"Chuyến đi dành cho phát lại"| REPLAY["1.3 · Python Replay"]
@@ -38,14 +40,14 @@ flowchart TD
 
 | Phần | Phụ trách | Kết quả cần bàn giao |
 | --- | --- | --- |
-| 1. Data Ingestion | Chính | Provenance TLC, Parquet cho hai tập, manifest và sự kiện phát lại qua Kafka |
+| 1. Data Ingestion | Chính | Nguồn/provenance/Parquet/manifest trên HDFS, replay từ HDFS qua Kafka |
 | 2. Data Processing | Mạnh | Mức lịch sử từ batch và số chuyến từ stream |
 | 3. Data Warehouse | Bảo | Các bảng PostgreSQL, cách nạp và truy vấn demo |
 | 4. Kiểm tra toàn tuyến | Nhóm trưởng cùng ba thành viên | Bộ mẫu chung, kết quả đối chiếu và hướng dẫn chạy |
 
 ## 1. Data Ingestion — Chính
 
-**Mục tiêu giai đoạn.** Đưa dữ liệu TLC vào workspace bằng DuckDB để hai nhánh xử lý dùng được. Chính lấy đúng các khoảng nhóm chốt, ghi thông tin nguồn để đối chiếu, tạo Parquet và manifest. Với tập replay, Chính phát sự kiện pickup qua Kafka cho Mạnh đọc dần.
+**Mục tiêu giai đoạn.** Đưa dữ liệu TLC vào HDFS dùng chung bằng DuckDB và bộ xuất bản HDFS để hai nhánh xử lý dùng được. Chính lấy đúng các khoảng nhóm chốt, ghi thông tin nguồn để đối chiếu, tạo Parquet và manifest. Với tập replay, Chính đọc Parquet từ HDFS rồi phát sự kiện pickup qua Kafka cho Mạnh đọc dần.
 
 ### 1.1. Dùng DuckDB lấy trực tiếp Parquet TLC
 
@@ -56,17 +58,17 @@ flowchart TD
 
 [Nguồn TLC chính thức](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) · [DuckDB đọc Parquet](https://duckdb.org/docs/stable/data/parquet/overview).
 
-### 1.2. Lưu provenance, Parquet và lập manifest
+### 1.2. Lưu nguồn, provenance, Parquet và manifest trên HDFS
 
-- **Mục đích.** Tạo đầu vào cục bộ đọc được cho batch/replay và lưu dấu vết nguồn để kiểm tra.
-- **Đầu vào.** Kết quả DuckDB từ 1.1 và CSV Taxi Zone Lookup.
-- **Việc cần làm.** Lưu `source.json` mô tả URL/đường dẫn tháng, SQL, phạm vi, phiên bản và checksum đầu ra; lưu CSV lookup nguyên bản. Không yêu cầu JSON chuyến gốc vì nguồn mới là Parquet. Manifest giữ schema đã thống nhất, ghi vai trò, nguồn, khoảng thời gian, `raw_path`, `parquet_path` và trạng thái. Chỉ công bố `ready` khi đọc hết các file tháng đã chọn và ghi xong Parquet.
-- **Đầu ra.** `raw_path` của chuyến đi trỏ đến thư mục provenance, không giả định đã lưu toàn bộ file tháng gốc. `parquet_path` đưa history sang 2.2 và replay sang 1.3. Bảo nhận CSV qua `zone_lookup`. Giới hạn độ phủ của file tháng, quy tắc DST và cách giữ nguồn đầy đủ được ghi trong [hợp đồng ingestion](../ingestion.md).
+- **Mục đích.** Bàn giao dữ liệu trên hệ phân tán để các thành viên đọc từ môi trường của mình; lưu trước, phát lại sau.
+- **Đầu vào.** Parquet tháng TLC đã tải/cache, CSV Taxi Zone Lookup, hai kỳ đã chốt và thư mục gốc HDFS chung.
+- **Việc cần làm.** Lưu Parquet nguồn nguyên bản trên HDFS trước khi xử lý. DuckDB tạo Parquet riêng history/replay; công bố hai file, CSV lookup và provenance `source.json` trên HDFS. Manifest ghi URI HDFS, vai trò, phạm vi, số dòng và checksum. Chỉ ghi `ready` khi mọi file đã hoàn tất, kiểm tra nội dung và số bản sao; không công bố file đang upload.
+- **Đầu ra.** URI manifest HDFS; `parquet_path` HDFS đưa history sang 2.2 và replay sang 1.3. `raw_path` trỏ đến provenance hoặc CSV lookup trên HDFS; manifest/provenance có URI và checksum các Parquet nguồn thật. Bảo nhận CSV qua `zone_lookup`. JSON API mẫu cũ có thể lưu trên HDFS khi chạy fixture; nguồn TLC hiện tại là Parquet nên không tạo JSON chuyến giả.
 
 ### 1.3. Đọc lại chuyến đi và tạo sự kiện đón khách
 
 - **Mục đích.** Mô phỏng một nguồn gửi sự kiện theo thời gian để Spark có dữ liệu đến dần.
-- **Đầu vào.** File và phạm vi `replay` từ bước 1.2, mã phiên phát lại và cấu hình tốc độ phát.
+- **Đầu vào.** URI HDFS và phạm vi `replay` từ manifest HDFS ở bước 1.2, mã phiên phát lại và cấu hình tốc độ phát.
 - **Việc cần làm.** Viết chương trình Python đọc các dòng theo thời điểm đón khách và gửi dần sang Kafka. Mỗi dòng trong bộ mẫu có một `event_id` ổn định khi gửi lại. Chỉ đưa vào sự kiện các thông tin đã biết lúc đón khách.
 - **Đầu ra.** Các sự kiện JSON gửi đến bước 1.4. Mỗi sự kiện có `replay_id` (mã phiên), `event_id` (mã sự kiện), `pickup_at` (thời điểm đón), `pickup_zone_id` (mã vùng đón) và `source_file` (file Parquet replay để đối chiếu qua manifest).
 
@@ -91,7 +93,7 @@ flowchart TD
 ### 2.2. Tính mức lịch sử bằng Spark Batch
 
 - **Mục đích.** Trả lời “Khu vực này thường có bao nhiêu chuyến vào thứ và khung giờ đang xét?”
-- **Đầu vào.** File `history` đã sẵn sàng, phạm vi trong manifest và quy tắc từ 2.1.
+- **Đầu vào.** File `history` đã sẵn sàng tại `parquet_path` HDFS, phạm vi trong manifest HDFS và quy tắc từ 2.1.
 - **Việc cần làm.** Đếm chuyến theo từng khu vực và từng cửa sổ lịch sử. Sau đó lấy trung bình các cửa sổ có cùng thứ và khung giờ, ví dụ các thứ Hai từ 08:00 đến 08:15. Chỉ dùng các cửa sổ có độ phủ đã xác nhận, tính cả cửa sổ thực sự có 0 chuyến.
 - **Đầu ra.** Một dòng cho mỗi khu vực, thứ và khung giờ, gồm `pickup_zone_id`, `iso_weekday`, `slot_15m`, `baseline_trip_count` và `reference_windows` (số cửa sổ dùng để tính). Bàn giao kèm phạm vi lịch sử cho bước 3.2.
 
@@ -117,7 +119,7 @@ flowchart TD
 
 - **Mục đích.** Đưa đầu ra của hai nhánh vào kho để SQL có thể truy vấn.
 - **Đầu vào.** Các bảng ở 3.1, Zone Lookup ở 1.2, mức lịch sử ở 2.2 và số đếm cửa sổ ở 2.3.
-- **Việc cần làm.** Nạp lookup và mức lịch sử. Khi nhận tổng mới từ stream, cập nhật dòng theo khóa phiên–vùng–cửa sổ. Kiểm tra nạp lại cùng một đầu ra để xác nhận số dòng và số chuyến giữ nguyên.
+- **Việc cần làm.** Nạp lookup từ URI HDFS và mức lịch sử. Nếu dùng `psql \copy`, tải CSV từ HDFS về file tạm trên máy chạy `psql` trước khi nạp. Khi nhận tổng mới từ stream, cập nhật dòng theo khóa phiên–vùng–cửa sổ. Kiểm tra nạp lại cùng một đầu ra để xác nhận số dòng và số chuyến giữ nguyên.
 - **Đầu ra.** Ba bảng có dữ liệu trong PostgreSQL, sẵn sàng cho bước 3.3.
 
 ### 3.3. Truy vấn kết quả demo
@@ -133,7 +135,7 @@ flowchart TD
 
 - **Mục đích.** Kiểm tra từng điểm bàn giao và kết quả cuối trước khi chạy trên mẫu TLC thật.
 - **Đầu vào.** Các trang JSON mẫu theo schema API và CSV lookup có một vùng A. Hai cửa sổ lịch sử 08:00–08:15 vào hai thứ Hai trước kỳ replay có lần lượt 1 và 3 chuyến. Vào thứ Hai của kỳ replay có các chuyến lúc 08:01, 08:05, 08:14 và 08:15. Ca gửi trùng phát lại một sự kiện với cùng mã.
-- **Việc cần làm.** Chuẩn bị Kafka và các bảng PostgreSQL. Nhập JSON mẫu và tạo Parquet, chạy batch, khởi động stream rồi phát sự kiện. Cuối cùng chạy SQL với mã phiên và cửa sổ muốn xem.
+- **Việc cần làm.** Chuẩn bị HDFS dùng chung, Kafka và các bảng PostgreSQL. Nhập bộ mẫu và công bố Parquet/CSV/manifest trên HDFS; kiểm tra Spark Batch/Python đọc được URI bàn giao, chạy batch, khởi động stream rồi phát sự kiện. Cuối cùng chạy SQL với mã phiên và cửa sổ muốn xem.
 - **Đầu ra.** Mức lịch sử là **2 chuyến** trên hai cửa sổ. Stream ghi **3 chuyến** trong khung 08:00–08:15 và **1 chuyến** trong khung 08:15–08:30. SQL cho vùng A ở khung đầu trả **3 chuyến**, mức lịch sử **2**, chênh lệch **+50%**.
 
 ### 4.2. Chạy lại với dữ liệu TLC qua DuckDB và bàn giao

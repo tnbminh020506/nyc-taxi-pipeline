@@ -8,9 +8,11 @@ Bản đồ repo, thứ tự tích hợp và tiêu chí nghiệm thu chung.
 
 MVP trả lời câu hỏi **Khu vực nào có nhiều chuyến đón khách hơn mức lịch sử trong cùng khung giờ?** Người xem chọn một phiên replay và một cửa sổ 15 phút, rồi đọc kết quả trên PostgreSQL.
 
+Cập nhật từ Minh (`origin/main`, commit `0d1b775`): dùng **HDFS chung** để lưu Parquet nguồn, Parquet history/replay, CSV lookup, provenance và manifest; Python replay phải đọc tập đã công bố trên HDFS trước khi gửi Kafka. Nguồn TLC/DuckDB và tỉ lệ 60/40 đã chốt được giữ.
+
 Đây là workspace giao việc. Các tệp Python, SQL và YAML chứa chú thích về người phụ trách, đầu vào, đầu ra và yêu cầu xử lý.
 
-Nhánh `demo/ingestion` triển khai phần Chính (1.1–1.4): TLC Parquet HTTPS → DuckDB → Parquet/manifest và replay → Kafka.
+Nhánh `demo/ingestion` triển khai phần Chính (1.1–1.4): TLC Parquet → HDFS dùng chung → DuckDB → Parquet/manifest HDFS → replay → Kafka.
 Đã nghiệm thu xuất **48.722.567 dòng thật của 12 tháng 2025** và đối chiếu toàn bộ đầu ra; xem [số liệu, CI và giới hạn CDN](docs/duckdb-validation.md).
 Xem [cách cài, chạy bộ mẫu, cấu hình DuckDB/Kafka và hợp đồng bàn giao](docs/ingestion.md).
 Demo hiện tại chia khoảng **60/40 theo số dòng hợp lệ**: history 8.461, replay 5.651; dùng cache cho các lượt chạy lại. [Hướng dẫn giao việc ban đêm cho agent](docs/overnight-ingestion.md).
@@ -20,7 +22,7 @@ Xem sơ đồ và yêu cầu đầu vào, đầu ra của từng bước trong [
 
 ## Mục tiêu từng giai đoạn
 
-1. **Data Ingestion · Chính.** Dùng DuckDB đọc Parquet tháng Yellow Taxi của TLC, lọc hai kỳ, tạo Parquet cục bộ và ghi provenance/manifest. Phát các chuyến thuộc kỳ replay qua Kafka để Spark có thể đọc dần.
+1. **Data Ingestion · Chính.** Dùng DuckDB đọc Parquet tháng Yellow Taxi của TLC, lọc hai kỳ, lưu nguồn và Parquet/provenance/manifest trên HDFS. Đọc tập replay từ HDFS rồi phát qua Kafka để Spark có thể đọc dần.
 2. **Data Processing · Mạnh.** Tính mức lịch sử bằng Spark Batch và đếm số chuyến phát lại bằng Spark Structured Streaming. Dùng cùng quy tắc chọn chuyến hợp lệ và cửa sổ 15 phút để hai kết quả so sánh được.
 3. **Data Warehouse · Bảo.** Nạp tên vùng và hai bộ kết quả vào PostgreSQL. Cung cấp truy vấn để người xem chọn một phiên và một cửa sổ, rồi xem số chuyến, mức lịch sử và phần trăm chênh lệch theo khu vực.
 
@@ -29,7 +31,7 @@ Xem sơ đồ và yêu cầu đầu vào, đầu ra của từng bước trong [
 | Bước | Phụ trách | File cần đọc hoặc triển khai | Bàn giao |
 | --- | --- | --- | --- |
 | **1.1** Lấy chuyến đi từ TLC qua DuckDB | Chính, nhóm trưởng chốt mẫu | [Cấu hình DuckDB/TLC](configs/demo.example.yaml) · [Tiếp nhận nguồn](src/nyc_taxi_pipeline/ingestion/tlc.py) | Parquet và thông tin file nguồn/bộ lọc cho hai kỳ `history` và `replay` |
-| **1.2** Lưu provenance, Parquet và lập manifest | Chính | [Điểm chạy nhập](scripts/run_ingestion.py) · [Lưu dữ liệu](src/nyc_taxi_pipeline/ingestion/tlc.py) · [Manifest](src/nyc_taxi_pipeline/ingestion/manifest.py) | `parquet_path` cho batch và replay, `raw_path` của `zone_lookup` cho Bảo |
+| **1.2** Lưu nguồn, provenance, Parquet và manifest trên HDFS | Chính | [Điểm chạy nhập](scripts/run_ingestion.py) · [Lưu dữ liệu](src/nyc_taxi_pipeline/ingestion/tlc.py) · [Manifest](src/nyc_taxi_pipeline/ingestion/manifest.py) | URI manifest HDFS, `parquet_path` HDFS cho batch/replay, `raw_path` HDFS của lookup cho Bảo |
 | **1.3** Đọc chuyến đi và tạo sự kiện | Chính | [Điểm chạy replay](scripts/replay_taxi_stream.py) · [Chương trình replay](src/nyc_taxi_pipeline/ingestion/replay.py) | Sự kiện pickup có mã phiên, mã sự kiện, giờ đón, vùng đón và file Parquet replay |
 | **1.4** Đưa sự kiện vào Kafka | Chính, phối hợp nhóm trưởng | [Chương trình replay](src/nyc_taxi_pipeline/ingestion/replay.py) · [Kafka ingestion](docker-compose.ingestion.yml) | Topic `taxi-events` mà Spark có thể đọc |
 | **2.1** Chuẩn hóa thời gian và dữ liệu | Mạnh, thống nhất với Chính và Bảo | [Quy tắc pickup](src/nyc_taxi_pipeline/processing/pickup.py) | Quy tắc hợp lệ và phân cửa sổ dùng chung cho batch và stream |
@@ -44,15 +46,15 @@ Xem sơ đồ và yêu cầu đầu vào, đầu ra của từng bước trong [
 ## Luồng bàn giao và thứ tự tích hợp dự kiến
 
 ```text
-TLC Parquet HTTPS → DuckDB lọc/COPY → Parquet + provenance/manifest
+TLC Parquet → HDFS nguồn → DuckDB lọc/COPY → HDFS (Parquet + provenance/manifest)
   ├─ history (Parquet) → Spark Batch → bảng mức lịch sử
   └─ replay (Parquet) → Python Replay → Kafka taxi-events → Spark Stream → bảng số chuyến
-Taxi Zone Lookup (CSV) → mục zone_lookup trong manifest → bảng tra tên khu vực
+Taxi Zone Lookup (CSV) → HDFS, mục zone_lookup trong manifest → bảng tra tên khu vực
 Ba bảng trong PostgreSQL → SQL so sánh theo khu vực và khung 15 phút
 ```
 
 1. Nhóm trưởng chốt file tháng TLC, kỳ `history` và kỳ `replay`. Chính, Mạnh và Bảo cùng thống nhất schema Parquet, JSON sự kiện, bảng kết quả và vị trí bàn giao trong cấu hình demo.
-2. Chuẩn bị Kafka và ba bảng PostgreSQL. Chính dùng DuckDB đọc TLC, lưu provenance, tạo Parquet, công bố manifest và bàn giao mục `zone_lookup` cho Bảo nạp.
+2. Chuẩn bị HDFS dùng chung, Kafka và ba bảng PostgreSQL. Chính dùng DuckDB đọc TLC, lưu nguồn/provenance/Parquet trên HDFS, công bố manifest HDFS và bàn giao mục `zone_lookup` cho Bảo nạp.
 3. Mạnh chạy batch từ các mục `history` đã sẵn sàng. Bảo nạp kết quả của kỳ lịch sử đã chọn.
 4. Mạnh khởi động stream theo mã phiên đã chốt, sau đó Chính phát tập `replay`. Mạnh chuyển tổng số chuyến của mỗi cửa sổ vào kho theo quy tắc nạp của Bảo.
 5. Bảo truy vấn theo mã phiên và cửa sổ cần xem. Cả nhóm đối chiếu trên bộ mẫu trước, rồi chạy lại từ TLC và ghi riêng hai kết quả.
