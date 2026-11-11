@@ -1,5 +1,5 @@
 # KẾT QUẢ TEST STANDALONE KHO DỮ LIỆU POSTGRESQL (TỰ SINH RANDOM DATA)
-> **Thời điểm chạy test:** 2026-11-10 22:49:33
+> **Thời điểm chạy test:** 2026-11-10 22:59:18
 > **Phiên replay:** `demo-replay-test-01` | **Cửa sổ khảo sát:** `2025-01-20T08:00:00-05:00`
 > **Số lượng vùng khảo sát ngẫu nhiên:** 12 khu vực
 
