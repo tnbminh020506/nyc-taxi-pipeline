@@ -1,0 +1,10 @@
+{
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/nyc-taxi-pipeline/src"
+    ],
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/nyc-taxi-pipeline/src"
+    ]
+}

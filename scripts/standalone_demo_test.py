@@ -21,8 +21,36 @@ DATABASE_DIR = REPO_ROOT / "database"
 QUERIES_DIR = DATABASE_DIR / "queries"
 SRC_DIR = REPO_ROOT / "src"
 
-sys.path.insert(0, str(SRC_DIR))
-from nyc_taxi_pipeline.warehouse.queries import format_table  # noqa: E402
+def format_table(rows: List[Dict[str, Any]], max_rows: int = 10) -> str:
+    """Định dạng danh sách dict thành bảng Markdown dễ đọc."""
+    if not rows:
+        return "(Không có dữ liệu trả về)"
+    display_rows = rows[:max_rows]
+    headers = list(display_rows[0].keys())
+    widths = {h: len(str(h)) for h in headers}
+    str_rows: List[Dict[str, str]] = []
+    for r in display_rows:
+        sr: Dict[str, str] = {}
+        for h in headers:
+            v = r.get(h)
+            text = "NULL" if v is None else str(v)
+            sr[h] = text
+            if len(text) > widths[h]:
+                widths[h] = len(text)
+        str_rows.append(sr)
+
+    header_line = "| " + " | ".join(h.ljust(widths[h]) for h in headers) + " |"
+    sep_line = "| " + " | ".join("-" * widths[h] for h in headers) + " |"
+    body_lines = [
+        "| " + " | ".join(sr[h].ljust(widths[h]) for h in headers) + " |"
+        for sr in str_rows
+    ]
+    footer = (
+        f"\n... (Hiển thị {len(display_rows)}/{len(rows)} dòng)"
+        if len(rows) > len(display_rows)
+        else ""
+    )
+    return "\n".join([header_line, sep_line, *body_lines]) + footer
 
 SAMPLE_BOROUGHS = ["Manhattan", "Queens", "Brooklyn", "Bronx", "Staten Island"]
 SAMPLE_ZONES = [
