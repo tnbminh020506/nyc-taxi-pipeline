@@ -1,0 +1,2 @@
+# TODO: 3.2 · Nạp bảng tra và dữ liệu vùng.
+# Guide: docs/guide/warehouse/02-zone-lookup.md

@@ -1,0 +1,2 @@
+-- TODO: 3.2 · Lưu số đếm và snapshot cảnh báo.
+-- Guide: docs/guide/warehouse/04-demand-storage.md
