@@ -7,48 +7,163 @@ Cập nhật 18/11/2026. Đây là đặc tả triển khai; Python/SQL hiện l
 Có **ba batch**, chạy mỗi 15 phút, và **ba stream**. Request đo nhu cầu; trip đo lượt điều phối/đón; trả khách đếm theo request. Không gọi số trip là số xe phân biệt, không quản lý đội xe/vehicle_id trong phạm vi này.
 
 ```mermaid
-flowchart TB
-    NYC[NYC trip đầy đủ và nguồn vùng] --> ING[Chính: lấy nguồn, raw/Parquet/manifest]
-    ING --> H[HDFS history ready]
-    ING --> R[HDFS replay ready]
-    R --> RP[Replay: phát ride_requested]
-    RP --> K[Kafka taxi-events: đặt / đón / trả]
-    K --> ROUTE[Mạnh: chuẩn hóa, khử trùng, phân loại]
-    ROUTE --> S1[Stream 1: cảnh báo baseline nhu cầu]
-    ROUTE --> S2[Stream 2: view 60 phút và spike 15 giây]
-    ROUTE --> S3[Stream 3: ghép, điều phối, vòng đời]
-    USER[Phía người dùng: đã đồng ý ghép / chốt riêng] --> S3
-    S3 --> TX[Bảo: giao dịch trip + pickup outbox + lịch trả]
-    TX --> PUB[Chính: publisher sự kiện đón]
-    PUB --> K
-    TX --> SIM[Simulator: dropoff theo lịch]
-    SIM --> K
-    K --> ARCH[Archive consumer]
-    TX --> JOURNAL[Journal chuyển trạng thái]
-    JOURNAL --> ARCH
-    ARCH --> RAW[HDFS sự kiện gốc và receipt]
-    RAW --> INPUT[Snapshot đầu vào batch cùng cutoff / độ phủ]
-    H --> INPUT
-    INPUT --> B1[Batch 1: hai baseline lịch sử]
-    INPUT --> B2[Batch 2: gradient trong ngày]
-    INPUT --> B3[Batch 3: trung bình trip đón trong ngày]
-    B1 --> FINAL[Tổng hợp cuối sau ba batch: số đếm 15 phút + kết quả]
-    B2 --> FINAL
-    B3 --> FINAL
-    INPUT -. sự kiện để tổng hợp số đếm .-> FINAL
-    FINAL --> BV[PostgreSQL: batch view và phiên bản công bố]
-    BV -. baseline / gradient .-> S1
-    BV --> DASH[Dashboard: lưu lượng và thống kê]
-    S1 --> ALERT[Kafka taxi-alerts]
-    S2 --> ALERT
-    S1 --> SV[PostgreSQL: stream view 15 phút]
-    S2 --> MIN[PostgreSQL: bản ghi phút, giữ toàn bộ lịch sử]
-    S2 --> SV
-    MIN --> DASH
-    S2 --> LIVE[Serving view: 60 phút gần nhất]
-    BV --> CHECK[Đối soát cùng phiên / zone / cửa sổ / cutoff]
-    SV --> CHECK
+%%{init: {"theme": "base", "themeVariables": {"textColor": "#ffffff", "primaryTextColor": "#ffffff", "secondaryTextColor": "#ffffff", "tertiaryTextColor": "#ffffff", "nodeTextColor": "#ffffff", "titleColor": "#ffffff", "edgeLabelBackground": "transparent", "background": "transparent"}, "themeCSS": ".nodeLabel, .nodeLabel p, .nodeLabel span, .edgeLabel, .edgeLabel p, .edgeLabel span, .cluster-label, .cluster-label p, .cluster-label span { color: #ffffff !important; } text, .label text, .cluster-label text, .edgeLabel text { fill: #ffffff !important; } rect.labelBkg { fill: transparent !important; } .labelBkg { background: transparent !important; background-color: transparent !important; } .edgeLabel, .edgeLabel p, .edgeLabel span, .nodeLabel, .nodeLabel p, .nodeLabel span, .cluster-label, .cluster-label p, .cluster-label span { background: transparent !important; background-color: transparent !important; }"}}%%
+flowchart LR
+    subgraph SOURCES["NGUỒN DỮ LIỆU"]
+        direction LR
+        NYC["NYC Yellow Taxi<br/>Trip lịch sử đầy đủ"]
+        ZONES["Taxi Zone Lookup<br/>Ranh giới vùng"]
+    end
+
+    subgraph INGESTION["1. DATA INGESTION"]
+        direction TB
+        FETCH["1.1 · Thu thập dữ liệu<br/>Theo kỳ history / replay"]
+        STORE["1.2 · Chuẩn hóa và công bố HDFS<br/>Raw · Parquet · lookup · manifest ready"]
+        REPLAY["1.3 · Replay / simulator<br/>Phát yêu cầu đặt xe"]
+        KAFKA["1.4 · Kafka taxi-events<br/>Đặt xe · đón khách · trả khách"]
+        PICKUP["Phát sự kiện đón khách<br/>Một pickup cho mỗi trip đã chốt"]
+        DROPOFF["Simulator trả khách<br/>Phát theo lịch từng request"]
+        ARCHIVE["Archive consumer<br/>Lưu sự kiện và journal vào HDFS"]
+        EVENTS["HDFS lịch sử sự kiện<br/>Snapshot · coverage · receipt"]
+        JACK((" "))
+    end
+
+    subgraph PROCESSING["2. DATA PROCESSING"]
+        direction TB
+        subgraph BATCH["NHÁNH BATCH · Chu kỳ 15 phút"]
+            direction TB
+            INPUT["Đọc snapshot đầu vào<br/>Cùng phạm vi và cutoff"]
+            B1["Batch 1 · Baseline nhu cầu<br/>Các ngày trước / cùng thứ tuần trước"]
+            B2["Batch 2 · Gradient trong ngày<br/>K khung liên tiếp đã chốt"]
+            B3["Batch 3 · Lượt đón trung bình trong ngày<br/>Chỉ tính khung có trip đón"]
+            SUMMARY["Tổng hợp cuối sau ba batch<br/>Số đếm 15 phút · kết quả · phiên bản"]
+        end
+        subgraph STREAM["NHÁNH STREAM · Nhịp xử lý 15 giây"]
+            direction TB
+            ROUTE["Chuẩn hóa · khử trùng · phân loại<br/>Theo event time"]
+            S1["Stream 1 · Cảnh báo baseline<br/>Giữ mức tham chiếu của cửa sổ"]
+            S2["Stream 2 · Lưu lượng và spike<br/>Gom theo phút · kiểm tra tăng đột ngột 15 giây"]
+            LIVE["Serving view · 60 phút gần nhất<br/>Số trip đón theo zone"]
+            S3["Stream 3 · Ghép và điều phối<br/>Cache ứng viên · quản lý vòng đời"]
+            JCOUNTS((" "))
+        end
+    end
+
+    subgraph WAREHOUSE["3. DATA WAREHOUSE · PostgreSQL / PostGIS"]
+        direction TB
+        LOOKUP["Bảng tra khu vực<br/>Tên vùng · hình học"]
+        BATCHVIEW["Batch view và kết quả thống kê<br/>Hai baseline · gradient · trung bình ngày<br/>Số đếm 15 phút · phiên bản công bố"]
+        STREAMVIEW["Stream view · Cửa sổ 15 phút<br/>Số đếm · baseline snapshot · trạng thái chốt"]
+        MINUTES["Lịch sử số đếm theo phút<br/>Upsert cùng phiên–zone–phút<br/>Giữ toàn bộ trong PostgreSQL"]
+        OPS["Dữ liệu và giao dịch điều phối<br/>Request · cặp ghép · trip · thành viên<br/>Pickup outbox · lịch trả · journal"]
+        RECEIPTS["Xác nhận archive và khử trùng<br/>Điều kiện dọn chi tiết vận hành"]
+        RETENTION["Retention vận hành<br/>Kiểm tra điều kiện trước khi dọn"]
+    end
+
+    USER["API / client<br/>Đồng ý đã có · gia hạn · chốt riêng"]
+    ALERT["Kafka taxi-alerts<br/>Cảnh báo baseline / tăng đột ngột"]
+    DASH["Dashboard quản trị<br/>Lưu lượng · xu hướng · lịch sử"]
+    AUDIT["Đối soát batch–stream<br/>Cùng phiên · zone · cửa sổ · cutoff"]
+
+    NYC -->|"Trip lịch sử"| FETCH
+    ZONES -->|"Lookup và ranh giới vùng"| FETCH
+    FETCH --> STORE
+    STORE -->|"replay ready"| REPLAY
+    REPLAY -->|"ride_requested"| KAFKA
+    PICKUP -->|"pickup_completed"| KAFKA
+    DROPOFF -->|"dropoff_completed"| KAFKA
+    STORE -->|"history ready: khởi tạo lịch sử nhu cầu"| INPUT
+    EVENTS -->|"Snapshot sự kiện thực tế: batch đối chứng"| INPUT
+    STORE -->|"lookup / ranh giới ready"| LOOKUP
+    KAFKA -->|"Consumer group xử lý"| ROUTE
+    KAFKA -->|"Consumer group archive độc lập"| ARCHIVE
+    ARCHIVE -->|"Ghi bền vững sự kiện và journal"| EVENTS
+    INPUT --> B1
+    INPUT --> B2
+    INPUT --> B3
+    B1 -->|"Kết quả / trạng thái Batch 1"| SUMMARY
+    B2 -->|"Kết quả / trạng thái Batch 2"| SUMMARY
+    B3 -->|"Kết quả / trạng thái Batch 3"| SUMMARY
+    INPUT -->|"Đầu vào đếm độc lập với stream"| SUMMARY
+    SUMMARY -->|"Chờ đủ ba batch rồi công bố nguyên tử"| BATCHVIEW
+    ROUTE -->|"Request hợp lệ để đếm nhu cầu"| S1
+    ROUTE -->|"Request / pickup / dropoff để thống kê"| S2
+    ROUTE -->|"Request để ghép; pickup / dropoff cập nhật vòng đời"| S3
+    S1 -->|"Vượt baseline; ID cảnh báo ổn định"| ALERT
+    S2 -->|"Spike: R mới > k × R trước và > M"| ALERT
+    S1 -->|"Request count + version sau ack cảnh báo"| JCOUNTS
+    S2 -->|"Pickup / dropoff / completed trip + version riêng"| JCOUNTS
+    JCOUNTS -->|"Ghi cột riêng của từng writer"| STREAMVIEW
+    S2 -->|"Upsert tổng phút + version; retry không cộng trùng"| MINUTES
+    S2 -->|"Cập nhật cửa sổ 60 phút"| LIVE
+    S3 -->|"Ghi request / ghép / trip / outbox / lịch; cập nhật vòng đời"| OPS
+    USER -->|"Quyết định người dùng / bằng chứng đồng ý"| S3
+    S3 -->|"Phản hồi trạng thái / version / trip"| USER
+    OPS -.->|"Kết quả tra ứng viên / consent / trạng thái / hạn"| S3
+    BATCHVIEW -.->|"Baseline / gradient đọc từ kho"| S1
+    STREAMVIEW -.->|"Snapshot / tiến độ phục hồi"| S1
+    MINUTES -.->|"Lịch sử dựng lại view theo as_of"| LIVE
+    LOOKUP -.->|"Danh mục zone được tra cứu"| S2
+    OPS -.->|"Outbox đã commit được đọc / claim"| PICKUP
+    OPS -.->|"Lịch được đọc / claim sau pickup ack"| DROPOFF
+    KAFKA -->|"Broker ack pickup"| PICKUP
+    KAFKA -->|"Broker ack dropoff"| DROPOFF
+    PICKUP -->|"Ack pickup theo event_id"| JACK
+    DROPOFF -->|"Ack dropoff theo event_id"| JACK
+    JACK -->|"Ghi xác nhận gửi sau broker ack"| OPS
+    OPS -->|"Journal chuyển trạng thái cần archive"| ARCHIVE
+    ARCHIVE -->|"Ghi receipt sau khi HDFS bền vững"| RECEIPTS
+    RECEIPTS -->|"Archive committed / dedup để kiểm tra"| RETENTION
+    RETENTION -->|"Chỉ dọn chi tiết đã kết thúc và đủ điều kiện"| OPS
+    BATCHVIEW -->|"Thống kê / trung bình ngày"| DASH
+    MINUTES -->|"Lịch sử phút / rolling 60 phút"| DASH
+    LIVE -->|"View hiện tại từ stream"| DASH
+    BATCHVIEW -->|"Batch đã công bố"| AUDIT
+    STREAMVIEW -->|"Stream cùng khung đã chốt"| AUDIT
+    EVENTS -->|"Snapshot / coverage / cutoff đối chứng"| AUDIT
+    RECEIPTS -->|"Xác nhận archive committed"| AUDIT
+
+    classDef source fill:#eef2ff,stroke:#6366f1,color:#ffffff,fill-opacity:0.1
+    classDef ingest fill:#ecfeff,stroke:#0891b2,color:#ffffff,fill-opacity:0.1
+    classDef batch fill:#15803d,stroke:#15803d,color:#ffffff,fill-opacity:0.22
+    classDef stream fill:#facc15,stroke:#facc15,color:#ffffff,fill-opacity:0.12
+    classDef warehouse fill:#faf5ff,stroke:#9333ea,color:#ffffff,fill-opacity:0.1
+    classDef external fill:#f8fafc,stroke:#64748b,color:#ffffff,fill-opacity:0.1
+    class NYC,ZONES source
+    class FETCH,STORE,REPLAY,KAFKA,PICKUP,DROPOFF,ARCHIVE,EVENTS ingest
+    class INPUT,B1,B2,B3,SUMMARY batch
+    class ROUTE,S1,S2,LIVE,S3 stream
+    class LOOKUP,BATCHVIEW,STREAMVIEW,MINUTES,OPS,RECEIPTS,RETENTION warehouse
+    class USER,ALERT,DASH,AUDIT external
+    style SOURCES fill:#f8faff,stroke:#6366f1,fill-opacity:0.1,color:#ffffff
+    style INGESTION fill:#f0fcff,stroke:#0891b2,stroke-width:2px,fill-opacity:0.1,color:#ffffff
+    style PROCESSING fill:#f2fcf5,stroke:#16a34a,stroke-width:2px,fill-opacity:0.1,color:#ffffff
+    style BATCH fill:#15803d,stroke:#15803d,stroke-width:2px,fill-opacity:0.14,color:#ffffff
+    style STREAM fill:#facc15,stroke:#facc15,stroke-width:2px,fill-opacity:0.07,color:#ffffff
+    style WAREHOUSE fill:#fcf7ff,stroke:#9333ea,stroke-width:2px,fill-opacity:0.1,color:#ffffff
+    classDef junctionIngest fill:#0891b2,stroke:#0891b2,color:#ffffff
+    classDef junctionStream fill:#facc15,stroke:#facc15,color:#ffffff
+    class JACK junctionIngest
+    class JCOUNTS junctionStream
+
+    linkStyle 0,1 stroke:#6366f1,stroke-width:2px,color:#ffffff
+    linkStyle 2,3,4,5,6,7,8,9,10,11,12,41,42,43,44,45,47,55 stroke:#0891b2,stroke-width:2px,color:#ffffff
+    linkStyle 13,14,15,16,17,18,19,20 stroke:#15803d,stroke-width:2px,color:#ffffff
+    linkStyle 21,22,23,24,25,26,27,28,29,30,31,33,52 stroke:#facc15,stroke-width:2px,color:#ffffff
+    linkStyle 32 stroke:#64748b,stroke-width:2px,color:#ffffff
+    linkStyle 34,35,36,37,38,39,40 stroke:#f59e0b,stroke-width:2px,color:#ffffff,stroke-dasharray:6 4
+    linkStyle 46,48,49,50,51,53,54,56 stroke:#9333ea,stroke-width:2px,color:#ffffff
 ```
+
+**Quy ước mũi tên:** nét liền đi từ bên phát dữ liệu, sự kiện, lệnh ghi hoặc xác nhận tới bên nhận. **Nét đứt cam là luồng đọc ngược: dữ liệu từ warehouse quay về ingestion/pipeline sử dụng dữ liệu đó**, không phải chiều gửi câu lệnh truy vấn. Publisher/simulator và pipeline vẫn là bên chủ động đọc/claim; kho không tự đẩy dữ liệu. Nhãn trên đường cam nêu dữ liệu đọc được.
+
+**Màu sơ đồ:** ingestion xanh lam, pipeline gồm batch xanh lá đậm `#15803d`, stream vàng `#facc15`, warehouse tím; nét liền mang màu nhóm phát. Nguồn và giao diện ngoài có màu riêng. Nền nhãn trong suốt, chữ trắng.
+
+**Gom đường vào warehouse:** Stream 1 và Stream 2 gom tại chấm vàng trong pipeline rồi vào stream view bằng một đường; pickup và dropoff gom ack tại chấm xanh lam trong ingestion rồi vào dữ liệu điều phối bằng một đường. Các chấm chỉ gom đường vẽ, không tạo queue/job, không cộng số đếm hay gộp transaction. Các writer vẫn giữ cột/version riêng; ack vẫn theo từng event_id. Không gom các đường có đích khác nhau hoặc gom đường đọc cam với đường ghi.
+
+Ba batch bàn giao riêng cho bộ tổng hợp, chỉ công bố sau khi đủ cả ba. Dashboard và đối soát giữ các đầu vào riêng để thể hiện nguồn. Receipt → retention là dữ liệu nội bộ warehouse nên dùng nét liền tím, không dùng đường đọc ngược cam.
+
+Vòng đời phát sự kiện: điều phối commit trip/outbox/lịch → publisher đọc/claim outbox → phát pickup vào Kafka → Kafka ack → publisher ghi ack vào kho → simulator mới được phát dropoff đến hạn. Ack gửi không đồng nghĩa hoàn tất chuyến: dropoff phải qua Kafka → router → Stream 3 để cập nhật thành viên/trip trong kho. Retention đọc receipt và chỉ dọn khi thỏa toàn bộ điều kiện; bảng receipt không tự thực hiện thao tác dọn. Batch đối chứng đọc HDFS sự kiện thực tế độc lập, không dùng số đếm stream làm đáp án.
 
 Ba batch không bắt buộc chạy nối tiếp nhau. Mỗi nhánh có thể tính số đếm trung gian, nhưng **bước tổng hợp/công bố số liệu cuối đặt sau cả ba nhánh**. Bộ tổng hợp đọc sự kiện/đầu vào trung gian của batch để ra số đếm; không suy ngược số đếm từ baseline hay gradient, không sao chép số đếm stream để tự đối soát với chính nó.
 
