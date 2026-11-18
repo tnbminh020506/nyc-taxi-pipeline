@@ -1,6 +1,6 @@
 # Bản đồ giao việc
 
-Đọc [sơ đồ tổng thể](giao-viec-demo-taxi.md), [hợp đồng chung](contracts.md), rồi chọn công việc bên dưới. Đây là cấu trúc triển khai đích; Python/SQL và scripts hiện chỉ là khung TODO, chưa có pipeline chạy được.
+Đọc [sơ đồ tổng thể](giao-viec-demo-taxi.md), [hợp đồng chung](contracts.md), rồi chọn công việc bên dưới. Xem [bàn giao Ingestion v2](../ingestion-v2.md) để chạy và đối chiếu phần ingestion. MVP toàn tuyến cần code tích hợp từ pipeline và warehouse.
 
 Ba thư mục tương ứng ba nhánh: `ingestion` — Chính, `pipeline` — Mạnh, `warehouse` — Bảo. Các mục 4.1 và 4.2 dành cho cả nhóm, không tạo file giao việc riêng và không sửa bộ mẫu, test hay báo cáo của hai mục đó. API/client quản trị có khu vực riêng; nhận đồng ý đã có từ phía người dùng, người triển khai do nhóm phân công.
 
@@ -37,7 +37,7 @@ Ba thư mục tương ứng ba nhánh: `ingestion` — Chính, `pipeline` — M�
 - `src/nyc_taxi_pipeline/pipeline/`: chuẩn hóa, ba batch và tổng hợp cuối, router, ba nhánh stream, service API/client.
 - `src/nyc_taxi_pipeline/warehouse/`: kết nối, repository, DDL/SQL, lịch phát và retention; SQL nằm trong `warehouse/sql/`.
 - `src/nyc_taxi_pipeline/shared/`: schema sự kiện, quy tắc thời gian và đồng hồ chung. Mạnh chủ trì events/windows; Chính chủ trì clock; đổi hợp đồng phải trao đổi cả ba người.
-- `scripts/`: chỉ đọc cấu hình và gọi module; không đặt nghiệp vụ ở đây. Chưa có CLI thực thi.
+- `scripts/`: đọc cấu hình và gọi module. Xem các CLI của Chính trong [bàn giao Ingestion v2](../ingestion-v2.md).
 
 `shared` không import ba nhánh. Ingestion và pipeline dùng các giao diện warehouse, không tự viết SQL rải rác. Warehouse không import job Spark hoặc producer; nhận DTO/tham số thuần. Các repository có thể chạy trong tiến trình riêng khi triển khai, không bắt buộc mọi thứ chung tiến trình.
 

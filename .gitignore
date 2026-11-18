@@ -11,3 +11,5 @@ __pycache__/
 /data/processed/
 /checkpoints/
 /output/
+/configs/*.local.yaml
+/data/*manifest.json

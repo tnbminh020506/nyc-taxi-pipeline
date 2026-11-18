@@ -1,0 +1,72 @@
+workspace_root: ..
+business_timezone: America/New_York
+schema_version: 2
+
+source:
+  kind: api  # Or tlc_parquet with source_id, source_version and files below.
+  source_id: tlc-yellow-taxi
+  source_version: "2025-01"
+  files:
+    "2025-01": output/tlc-source-cache/yellow_tripdata_2025-01.parquet
+api:
+  version: 2
+  endpoint: https://data.cityofnewyork.us/resource/irx2-vgm4.json
+  dataset_id: irx2-vgm4
+  source_version: "2026-10-01"
+  app_token_env: SOCRATA_APP_TOKEN
+  page_size: 1000
+  max_pages: 100
+  timeout_seconds: 30
+  max_retries: 3
+
+# Example windows from the earlier ~60/40 TLC rehearsal.
+# Replace both when the demo dates and baseline history have been agreed.
+datasets:
+  history:
+    range_start: "2025-01-06T08:00:00-05:00"
+    range_end: "2025-01-06T10:00:00-05:00"
+  replay:
+    range_start: "2025-01-20T08:00:00-05:00"
+    range_end: "2025-01-20T10:00:00-05:00"
+
+zones:
+  zone_lookup:
+    source_id: tlc-taxi-zone-lookup
+    source_version: "demo-1"
+    source: https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
+  zone_boundaries:
+    source_id: nyc-taxi-zones-8meu-9t5y
+    source_version: "2025-06-09"
+    source: https://data.cityofnewyork.us/resource/8meu-9t5y.geojson
+
+storage:
+  fs_uri: hdfs://namenode:8020
+  webhdfs_url: http://127.0.0.1:9870
+  user: root
+  root: /nyc-taxi
+  replication: 2
+  data_node_map:
+    "datanode-1:9864": http://127.0.0.1:9864
+    "datanode-2:9865": http://127.0.0.1:9865
+
+kafka:
+  bootstrap_servers: ["127.0.0.1:9092"]
+  topic: taxi-events
+  ack_timeout_seconds: 30
+replay:
+  coordinate_seed: 2026
+clock:
+  simulation_start: "2025-01-20T08:00:00-05:00"
+  wall_start: null  # Set one shared absolute start instant for all workers.
+  speed: 1
+
+warehouse:
+  schedule_repository: null  # package.module:factory from the warehouse branch
+  archive_repository: null
+schedule_worker:
+  lease_seconds: 90
+  idle_seconds: 0.5
+archive:
+  group_id: taxi-event-archive-v2
+  max_records: 500
+  journal_lease_seconds: 90

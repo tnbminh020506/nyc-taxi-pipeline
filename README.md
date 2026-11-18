@@ -2,7 +2,7 @@
 
 Workspace chia việc cho hệ thống nhu cầu đặt xe và ghép xe NYC: **ba batch** (hai baseline lịch sử, gradient trong ngày, trung bình lượt đón trong ngày) và **ba stream** (cảnh báo baseline, lưu lượng/spike, ghép/điều phối). Đơn vị nhu cầu là yêu cầu đặt xe; ghép hai yêu cầu vẫn tính hai yêu cầu.
 
-Bắt đầu từ [bản đồ giao việc](docs/guide/README.md), [sơ đồ tổng thể](docs/guide/giao-viec-demo-taxi.md) và [hợp đồng chung](docs/guide/contracts.md). Hướng dẫn chi tiết nằm trong Markdown; các file Python, SQL, YAML hiện là **khung giao việc, chưa có chương trình chạy hoàn chỉnh**.
+Bắt đầu từ [bản đồ giao việc](docs/guide/README.md), [sơ đồ tổng thể](docs/guide/giao-viec-demo-taxi.md) và [hợp đồng chung](docs/guide/contracts.md). Mã ingestion v2 và các lệnh chạy nằm trong [hướng dẫn bàn giao ingestion](docs/ingestion-v2.md). Pipeline và warehouse cần tích hợp để chạy MVP toàn tuyến.
 
 ## Phân công và khu vực code
 
