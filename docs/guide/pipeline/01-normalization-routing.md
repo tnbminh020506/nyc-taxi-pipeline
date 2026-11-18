@@ -1,20 +1,20 @@
-# 2.1 · Chuẩn hóa, khử trùng và phân luồng
+# 2.1 · Chuẩn hóa và router ba loại sự kiện
 
-**Phụ trách:** Mạnh. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Mạnh. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Quy tắc chung cho batch/stream; phân loại tính nhu cầu và ghép riêng.
+Quy tắc dùng chung cho batch/stream; route request, pickup và dropoff, phân biệt các đại lượng.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Nhận Parquet hoặc event version đã hỗ trợ. Trả requested_at chuẩn, zone, window_start/end, iso_weekday 1–7, slot_15m 0–95, demand_valid, match_eligible và lý do lỗi. Khóa event theo replay_id/event_id; request chỉ đóng góp một lần.
+Schema v2, event time, scope/replay; khóa nghiệp vụ theo bảng contracts. Tạo bucket 15 giây, phút và 15 phút; demand_valid/match_eligible riêng. Dropoff đến trước pickup cần buffer/state quan hệ.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Dùng America/New_York và cửa sổ [start,end), phân biệt UTC instant với nhãn slot địa phương, xử lý giờ DST theo chính sách nguồn rõ ràng. Chỉ ride_requested tăng nhu cầu; dropoff đi nhánh vòng đời. Không loại nhu cầu chỉ vì tọa độ/thời lượng ghép lỗi. Checkpoint và sổ khử trùng bền vững theo phiên; dữ liệu sau chốt ghi cách ly. Tách trigger khỏi cửa sổ nghiệp vụ.
+Timezone America/New_York, [start,end), DST chính sách rõ. Request lỗi tọa độ vẫn đếm nếu thời gian/vùng hợp lệ. Khử trùng event và nghiệp vụ bền vững; ghi admission metadata cho batch. Cùng clock, watermark/coverage và chính sách cách ly sau chốt.
 
 ## Khu vực code
 
@@ -25,6 +25,6 @@ Dùng America/New_York và cửa sổ [start,end), phân biệt UTC instant vớ
 
 ## Tiêu chí hoàn thành
 
-08:15 vào khung mới; trùng request không tăng tổng; dropoff không tăng nhu cầu; dữ liệu không đủ ghép vẫn được đếm nếu hợp lệ; cùng đầu vào batch/stream ra cùng cửa sổ.
+Đúng mốc biên, retry không tăng count; pickup không tăng request; đủ thành viên mới tăng completed_trip; state xuyên cửa sổ/ngày và restart.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

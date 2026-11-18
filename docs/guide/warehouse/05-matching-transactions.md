@@ -1,20 +1,20 @@
-# 3.2 mở rộng · PostGIS và giao dịch ghép
+# 3.2 · Giao dịch điều phối và pickup outbox
 
-**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Sở hữu truy vấn bán kính, khóa cặp và chuyển trạng thái nguyên tử cho stream/API.
+Khóa cặp đã có đồng ý, tạo trip và sự kiện đón bền vững; cache không thay transaction.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Request khóa (replay_id, request_id), proposal có hai thành viên và version; rejected_pairs khóa phiên cùng cặp ID đã sắp thứ tự. API truyền idempotency_key, expected_version và bằng chứng đồng ý. Trả proposal/trip hiện hành hoặc xung đột.
+commit_dispatch(consent_references,expected_version,idempotency_key); trip và thành viên, một pickup outbox chứa request_ids, lịch dropoff từng người. Tọa độ đón đầu tiên chọn thứ tự phục vụ ổn định và lưu lại.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Dùng ST_DWithin trên geography cho cả điểm đón và đến, đơn vị mét, không lọc theo zone. Khóa request theo thứ tự ổn định, kiểm tra trạng thái/hạn lại trong transaction. Từ chối ghi cặp A–B không thứ tự; hết hạn không ghi từ chối. Xác nhận/đi riêng tạo trips, trip_requests và scheduled_events trong cùng giao dịch; đồng ý phải đủ hai người. Lưu journal mọi chuyển trạng thái, giải phóng đối tác khi đề xuất hủy.
+ST_DWithin geography cho cả hai bán kính 500m, không lọc zone. Kiểm tra consent/hạn/state dưới khóa theo ID ổn định rồi ghi trip/members/outbox/schedule/journal cùng transaction. Solo cùng cơ chế một thành viên. Reject chuẩn hóa cặp, timeout khác từ chối; retry trả cùng trip. Không gọi Kafka trong transaction như thể có atomic commit xuyên hệ thống.
 
 ## Khu vực code
 
@@ -23,6 +23,6 @@ Dùng ST_DWithin trên geography cho cả điểm đón và đến, đơn vị m
 
 ## Tiêu chí hoàn thành
 
-Hai người đồng ý mới có trip ghép; concurrent confirm/timeout/solo chỉ một kết quả; retry trả cùng trip; cả hai khoảng cách <=500m; người còn hạn tiếp tục tìm.
+Đã có consent không hỏi lại; 2 request một trip/một pickup/hai lịch; crash/retry không tạo thêm; concurrent timeout/solo/ghép chỉ một kết quả.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

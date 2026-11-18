@@ -1,20 +1,20 @@
-# 2.2 · Batch 1: hai baseline
+# 2.2 · Batch 1: hai baseline lịch sử
 
-**Phụ trách:** Mạnh. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Mạnh. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Tạo demand_windows lịch sử và tính hai baseline, chạy khởi tạo và định kỳ 15 phút.
+Tính baseline nhu cầu ban đầu từ history; định kỳ từ lịch sử hợp lệ, không đọc stream counts làm đáp án đối chứng.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Nhận history ready hoặc snapshot cửa sổ đã chốt/đủ độ phủ. Trả all_days và same_weekday theo vùng/slot, thứ khi áp dụng; request_sum, reference_windows, baseline_value thập phân, history_start/end, cutoff, applies_on, scope_id, batch_version.
+Nhận snapshot nguồn/coverage và phạm vi lịch sử; staging all_days/same_weekday với request_sum, reference_windows, baseline_value, cutoff, applies_on, batch_version.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-all_days chọn cùng slot các ngày trước; same_weekday chọn cùng thứ các tuần trước. Chỉ lấy ngày trước ngày áp dụng. Tính cả 0 có độ phủ; thiếu mẫu trả chưa xác định. Không trộn phiên hoặc chồng lặp history/replay. Ghi staging, gọi warehouse/batch_repository.py công bố nguyên bộ trong giao dịch. Replay quá khứ chọn phiên bản phù hợp, không dùng dữ liệu tương lai.
+Cùng slot các ngày trước hoặc cùng thứ tuần trước; gồm khung 0 đủ dữ liệu, không lấy ngày áp dụng. Trung bình thập phân; thiếu mẫu NULL. Không trộn/chồng history và replay. Chỉ stage, trả trạng thái B1 cho tổng hợp cuối công bố sau ba nhánh.
 
 ## Khu vực code
 
@@ -22,6 +22,6 @@ all_days chọn cùng slot các ngày trước; same_weekday chọn cùng thứ 
 
 ## Tiêu chí hoàn thành
 
-Hai loại có mẫu số/phạm vi truy vết được; không làm tròn trung bình thành số nguyên; nạp lại không tăng mẫu; stream không thấy nửa bộ; chốt cửa sổ chưa tự đổi baseline.
+Hai mức có mẫu số/truy vết; không dùng tương lai; retry không tăng mẫu; chưa tự công bố trước barrier tổng hợp.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

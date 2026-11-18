@@ -1,2 +1,19 @@
-# TODO: Cấu hình nguồn, hạ tầng và tham số nghiệp vụ.
+# TODO: Cấu hình nguồn và hạ tầng; kiểm tra tham số trước chạy.
 # Guide: docs/guide/giao-viec-demo-taxi.md, mục 4.3; docs/guide/contracts.md
+business_timezone: America/New_York
+batch_interval_minutes: 15
+business_window_minutes: 15
+stream_trigger_seconds: 15
+spike_interval_seconds: 15
+minute_bucket_seconds: 60
+serving_horizon_minutes: 60
+schema_version: 2
+trend_window_count: 4
+spike_multiplier: null  # Bắt buộc k > 1.
+spike_min_requests: null  # Bắt buộc M >= 0.
+matching_pickup_radius_meters: 500
+matching_dropoff_radius_meters: 500
+initial_wait_seconds: 180
+extension_duration_seconds: null
+watermark_delay_seconds: null
+retain_all_analytics_history: true

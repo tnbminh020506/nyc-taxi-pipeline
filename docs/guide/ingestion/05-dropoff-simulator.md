@@ -1,20 +1,20 @@
-# Sơ đồ · Đồng hồ và simulator trả khách
+# Sơ đồ · Simulator trả khách sau pickup
 
-**Phụ trách:** Chính. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Chính. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Đọc lịch bền vững do API/kho tạo và phát hoàn tất đúng hạn; không tự tạo trip.
+Đọc lịch bền vững của trip đã chốt; phát hoàn tất từng request, không tự tạo chuyến.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-scheduled_events có event_id, replay_id, trip_id, request_id, due_at, payload, trạng thái gửi. dropoff_completed có completed_at, vùng/tọa độ trả khách, scheduled_event_id. due_at = thời điểm bắt đầu phục vụ + thời lượng nguồn của từng request.
+event_id/replay_id/trip_id/request_id/due_at/payload/status; due_at=trip_started_at+source_duration_seconds. Chờ pickup outbox ack, giữ completed_at theo lịch chứ không dùng giờ retry.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Dùng shared/clock.py cho cả replay, timeout và scheduler; đồng hồ vẫn tiến khi không có request mới. Đọc/claim lịch qua warehouse/schedule_repository.py, gửi Kafka rồi ghi ack. Nếu crash sau gửi trước ack thì gửi lại cùng ID. Ghép hai request tạo hai lịch; không phát hoàn tất cho request đang chờ/hủy. Khi tương tác thủ công dùng 1×.
+Dùng clock chung vẫn tiến lúc vắng dữ liệu; claim lịch có hạn, retry cùng event_id, ghi ack sau Kafka. Trip ghép có hai lịch. Thời lượng lỗi cách ly; không hoàn tất request chờ/hủy; thời gian bắt đầu phục vụ bằng picked_up_at trong demo.
 
 ## Khu vực code
 
@@ -22,6 +22,6 @@ Dùng shared/clock.py cho cả replay, timeout và scheduler; đồng hồ vẫn
 
 ## Tiêu chí hoàn thành
 
-Restart không mất lịch; retry không sinh ID mới; không trả khách trước chốt chuyến; chuyến ghép có hai sự kiện riêng; thời lượng lỗi được cách ly theo cấu hình.
+Restart lấy lại lịch chưa ack; không gửi trước pickup; hai dropoff có request khác nhau; không đánh dấu trip xong chỉ vì producer đã ack.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

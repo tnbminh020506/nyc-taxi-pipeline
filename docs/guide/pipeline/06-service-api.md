@@ -1,20 +1,20 @@
-# Sơ đồ · API và client xác nhận dịch vụ
+# Sơ đồ · API quản trị và nhận quyết định người dùng
 
-**Phụ trách:** Mạnh phụ trách hợp đồng; người triển khai API/client do nhóm phân công. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Mạnh phụ trách hợp đồng; nhóm phân công người triển khai. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Tách API/client khỏi Spark; định nghĩa thao tác và nối giao dịch của Bảo. Không triển khai kiểm thử/demo toàn tuyến 4.1–4.2 ở đây.
+API/client điều phối, quản trị; tiếp nhận đồng ý đã có, không xây quy trình thương mại xin lại xác nhận.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Các thao tác đề xuất: xem proposal, ghi đồng ý từng request, xác nhận cặp, từ chối, gia hạn, chốt đi riêng. Payload có replay_id, request_id/proposal_id, idempotency_key, expected_version; phản hồi có trạng thái/version hiện tại, trip_id nếu đã chốt. Bằng chứng đồng ý gắn từng request.
+replay_id, request_id/proposal_id, consent_reference cho từng người, expected_version, idempotency_key; phản hồi trạng thái/version/trip hiện tại. Thao tác gia hạn, từ chối, solo vẫn nhận quyết định rõ ràng.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-API kiểm tra hai đồng ý, trạng thái và hạn bằng đồng hồ chung rồi gọi transaction kho. Chốt chuyến và lịch trong cùng giao dịch, retry trả cùng trip. Từ chối lưu cặp không thứ tự; gia hạn không giới hạn số lần, thời lượng cấu hình chưa chốt. Im lặng không đồng ý và không tự tạo trip. Client chỉ hiển thị trạng thái và gửi quyết định, không quyết định ghép bằng baseline.
+Xác minh bằng chứng và hạn dưới giao dịch kho, gọi commit_dispatch/start_solo; không tự phát pickup trước commit. Hai người đã đồng ý thì chốt ngay khi đủ điều kiện. Gia hạn duration cấu hình, không giới hạn số lần; im lặng không thành solo. Client đọc dashboard từ phút/rolling view và batch3, không quyết định ghép bằng baseline.
 
 ## Khu vực code
 
@@ -23,6 +23,6 @@ API kiểm tra hai đồng ý, trạng thái và hạn bằng đồng hồ chung
 
 ## Tiêu chí hoàn thành
 
-Giao dịch nhận đủ bằng chứng hai người; gọi lại trả cùng kết quả; xác nhận quá hạn bị từ chối; gia hạn/đi riêng/timeout cạnh tranh chỉ một chuyển trạng thái có hiệu lực.
+Không hỏi lại đồng ý; lỗi consent hoặc version bị từ chối; retry cùng kết quả; gia hạn/solo/timeout chỉ một chuyển trạng thái hợp lệ.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

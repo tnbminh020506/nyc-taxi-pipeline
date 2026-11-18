@@ -1,2 +1,2 @@
-# TODO: Sơ đồ · Đồng hồ và simulator trả khách.
+# TODO: Sơ đồ · Simulator trả khách sau pickup.
 # Guide: docs/guide/ingestion/05-dropoff-simulator.md

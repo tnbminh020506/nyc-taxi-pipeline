@@ -1,2 +1,2 @@
--- TODO: 3.1 · Schema PostgreSQL/PostGIS.
+-- TODO: 3.1 · Schema phân tích và vận hành.
 -- Guide: docs/guide/warehouse/01-schema.md

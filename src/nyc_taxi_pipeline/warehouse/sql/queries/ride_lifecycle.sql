@@ -1,2 +1,2 @@
--- TODO: 3.3 · SQL đối soát.
+-- TODO: 3.3 · Đối soát batch–stream và dashboard.
 -- Guide: docs/guide/warehouse/07-reconciliation.md

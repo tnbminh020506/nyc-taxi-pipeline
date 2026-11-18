@@ -1,28 +1,31 @@
-# 3.2 · Lưu số đếm và snapshot cảnh báo
+# 3.2 · Stream counts, phút và serving view
 
-**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Giao diện đọc mức tham chiếu, upsert tổng và chốt cửa sổ; không phát cảnh báo.
+Ghi totals 15 phút và bucket phút, cung cấp rolling 60 phút cho dashboard.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-demand_windows khóa (scope_id, zone_id, window_start), giữ replay_id nếu có, window_end, request_count, coverage, is_final, update_version và snapshot baseline. Scope phân biệt nguồn/phiên; snapshot chứa cả giá trị, loại, số mẫu và publication_version.
+stream_window_counts có cột request/snapshot do S1 ghi, lifecycle counts do S2 ghi; stream_minute_counts khóa (replay_id,zone_id,minute_start), version/finality. Không TTL lịch sử phút.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Gán tổng lũy kế thay vì cộng delta, từ chối cập nhật version cũ để tổng không lùi. Giữ snapshot lúc mở; retry không thay snapshot. Pipeline chỉ gọi upsert sau ack khi có cảnh báo. Chốt tổng cuối/coverage trong giao dịch, làm đầu vào batch kế tiếp; không tính lại baseline. Cửa sổ đủ độ phủ không request là 0; thiếu coverage không tạo 0 giả.
+Upsert tổng tuyệt đối, từ chối version cũ và bảo vệ từng writer. Chốt 15 phút sau barrier hai writer/coverage; chốt không cập nhật baseline. Bucket phút gán theo event time, 15s sau cùng khóa thì cập nhật bản ghi cũ. Query SUM pickup trong [as_of−60m,as_of), left join đủ zone; phút thiếu coverage không biến thành zero. Phút mở provisional, sửa muộn trước chốt cho phép.
 
 ## Khu vực code
 
 - [warehouse/demand_repository.py](../../../src/nyc_taxi_pipeline/warehouse/demand_repository.py)
+- [warehouse/minute_repository.py](../../../src/nyc_taxi_pipeline/warehouse/minute_repository.py)
 - [warehouse/sql/load/demand_windows.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/load/demand_windows.sql)
+- [warehouse/sql/load/minute_counts.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/load/minute_counts.sql)
+- [warehouse/sql/queries/traffic_dashboard.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/queries/traffic_dashboard.sql)
 
 ## Tiêu chí hoàn thành
 
-Retry không tăng tổng; cập nhật cũ không ghi đè; cửa sổ chốt bất biến theo chính sách; đối soát lấy được baseline đã dùng dù batch đã công bố phiên bản mới.
+Delta 2,1,3,2 lưu một dòng cuối 8; retry không thành 10; hai writer không ghi đè nhau; sau 60p PostgreSQL còn dữ liệu cũ, serving chỉ lấy khoảng đúng.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

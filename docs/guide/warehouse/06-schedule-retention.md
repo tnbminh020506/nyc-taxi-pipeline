@@ -1,20 +1,20 @@
-# Sơ đồ · Lịch hoàn tất, lưu trữ và dọn dữ liệu
+# Sơ đồ · Outbox, hoàn tất và retention vận hành
 
-**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Bàn giao lịch cho Chính; cập nhật hoàn tất, receipt HDFS và chính sách retention.
+Bàn giao pickup outbox/dropoff schedule cho Chính; hoàn tất và dọn chi tiết có điều kiện.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-scheduled_events khóa event_id, một lịch hoàn tất cho mỗi thành viên trip; claim/status/ack cho retry. Nhận dropoff_completed, archive receipt và journal ID đã lưu. Ledger giữ event/request đã xử lý đủ lâu theo retry horizon.
+Claim/lease/ack với event_id ổn định, pickup ack trước lịch trả được phát; receipt raw/journal; dedup giữ đủ retry horizon. Lịch sử minute/batch/stream bị loại khỏi cleanup.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Lịch tạo cùng transaction chốt trip; worker claim có hạn để phục hồi khi crash. Ack gửi không đồng nghĩa trip hoàn tất: chỉ sự kiện được xử lý mới cập nhật từng người. Chỉ dọn khi số liệu bền vững, raw/journal có receipt HDFS, lịch xong và dedup vẫn ngăn retry hồi sinh. Xóa theo quan hệ, không dọn request chờ/gia hạn hoặc trip chưa hoàn tất. Retention vận hành, tổng hợp và dedup cấu hình riêng.
+Producer ack không đồng nghĩa khách đã được trả; consumer nhận dropoff mới cập nhật thành viên, đủ người đóng trip. State/dedup cho sự kiện đảo thứ tự. Chỉ dọn vận hành đã kết thúc, aggregate bền vững, archive committed và lịch xử lý đủ. Giữ request chờ/gia hạn, trip chưa xong; không xóa bảng phân tích theo serving_horizon.
 
 ## Khu vực code
 
@@ -26,6 +26,6 @@ Lịch tạo cùng transaction chốt trip; worker claim có hạn để phục 
 
 ## Tiêu chí hoàn thành
 
-Restart lấy lại lịch chưa ack; trả một người không đóng trip ghép; HDFS lỗi chặn dọn; retry sau dọn không tạo trip hay tăng nhu cầu; request hoạt động được giữ.
+Restart không mất sự kiện; trả một người không đóng trip ghép; HDFS lỗi chặn dọn; replay sau dọn không hồi sinh trip; dữ liệu phút hơn 60m vẫn còn.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

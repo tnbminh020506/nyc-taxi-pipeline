@@ -1,20 +1,20 @@
-# 2.2 mở rộng · Batch 2: gradient
+# 2.2 · Batch 2: gradient trong ngày
 
-**Phụ trách:** Mạnh. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Mạnh. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Tính xu hướng độc lập với điều kiện điểm nóng.
+Tính biến động request trong ngày hiện tại mỗi 15 phút.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Nhận K cửa sổ 15 phút liên tiếp, đã chốt, đủ độ phủ, cùng vùng/phạm vi; K=trend_window_count, mặc định 4, tối thiểu 2. Trả K số đếm và K−1 gradient, mốc cửa sổ, K, scope_id, batch_version, cutoff và series_end.
+K khung liên tiếp đã chốt/đủ dữ liệu, cùng zone/scope/ngày; K mặc định 4 >=2. Trả K counts, K−1 gradients, series_end, business_date, cutoff/version hoặc insufficient_data.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Từ snapshot nhất quán, tính (count_next-count_previous)/15 với đơn vị yêu cầu/phút. Không nối qua cửa sổ thiếu, không thay thiếu bằng 0; thiếu K báo trạng thái chưa đủ. Lưu qua batch_repository; chạy mỗi 15 phút. Stream chỉ đọc series_end không muộn hơn thời điểm xử lý.
+g=(count_sau-count_truoc)/15 yêu cầu/phút; không nối khung thiếu hoặc qua ngày trước; tính cả 0 đủ coverage. Stage kết quả, báo B2 cho bộ tổng hợp cuối. Stream chỉ đọc chuỗi đã công bố không ở tương lai.
 
 ## Khu vực code
 
@@ -22,6 +22,6 @@ Từ snapshot nhất quán, tính (count_next-count_previous)/15 với đơn v�
 
 ## Tiêu chí hoàn thành
 
-20,35,65,50 cho +1,+2,−1; đổi K dùng đúng số phần tử; thiếu khung không tạo chuỗi giả; có phiên bản và mốc dữ liệu để đối soát.
+20,35,65,50 cho +1,+2,−1; đổi K đúng số phần tử; đầu ngày thiếu K báo thiếu, không lấy ngày cũ bù.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

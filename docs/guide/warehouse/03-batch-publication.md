@@ -1,29 +1,31 @@
-# 3.2 · Snapshot và công bố kết quả batch
+# 3.2 · Công bố sau ba batch
 
-**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Cung cấp giao diện đọc snapshot và công bố baseline/gradient cho Mạnh.
+Quản lý staging, batch_runs và transaction công bố cuối; không tự tính nghiệp vụ batch.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Đọc cửa sổ chốt đủ độ phủ tại cutoff, cùng scope_id. Nhận staging baseline/gradient cùng batch_version; trả publication_version. Baseline thiếu mẫu được biểu diễn NULL/trạng thái thiếu, khác 0.
+begin_batch_run, stage_baselines/gradients/daily_pickups, publish_batch_run(version,window_counts); snapshot/cutoff/coverage, trạng thái từng nhánh.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Kiểm tra duy nhất khóa, số mẫu, phạm vi và cutoff; công bố cặp baseline nguyên bộ trong transaction. Lưu phiên bản để replay quá khứ và đối soát; đọc theo applies_on và cutoff hợp lệ. Gradient có phiên bản/mốc riêng, không gán là tức thời. Công bố lại cùng version idempotent; lỗi rollback không đổi phiên bản đang đọc.
+Kiểm tra schema/khóa/phạm vi của cả ba nhánh và summary; transaction công bố version sau cùng. Insufficient_data hợp lệ có trạng thái rõ, lỗi job rollback. Giữ các grain riêng trong bảng theo hợp đồng, stream đọc cặp baseline cùng version phù hợp applies_on. Không đọc stream totals làm baseline đối chứng.
 
 ## Khu vực code
 
 - [warehouse/batch_repository.py](../../../src/nyc_taxi_pipeline/warehouse/batch_repository.py)
 - [warehouse/sql/load/baseline.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/load/baseline.sql)
 - [warehouse/sql/load/gradients.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/load/gradients.sql)
+- [warehouse/sql/load/daily_pickups.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/load/daily_pickups.sql)
+- [warehouse/sql/load/batch_windows.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/load/batch_windows.sql)
 
 ## Tiêu chí hoàn thành
 
-Stream không đọc lẫn hai lần chạy; staging lỗi không được công bố; snapshot không nhận cửa sổ chưa chốt; không cộng lại cùng history/phiên.
+Không thấy nửa bộ; retry không nhân dữ liệu; summary nằm sau ba nhánh; giữ lịch sử phiên bản và truy vấn đúng một version.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

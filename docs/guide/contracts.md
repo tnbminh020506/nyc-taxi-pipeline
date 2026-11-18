@@ -6,7 +6,7 @@
 
 - Timestamp trao đổi dùng ISO 8601 có offset/UTC; PostgreSQL dùng timestamptz. Ngày/thứ/slot tính theo America/New_York. Cửa sổ 15 phút [start,end); iso_weekday 1–7, slot_15m 0–95. Hai instant trùng giờ địa phương khi DST vẫn là hai cửa sổ khác nhau theo window_start tuyệt đối. Chính và Mạnh phải chốt cách xử lý giờ nguồn mơ hồ/không tồn tại; không tự gán UTC cho giờ địa phương.
 - replay_id nhận diện phiên; scope_id nhận diện tập dữ liệu được tính toán (history hoặc phiên được chọn). Giữ ánh xạ scope với nguồn và phạm vi. Batch không tự trộn phiên; một cửa sổ nguồn không được đóng góp lần nữa chỉ vì replay bằng ID mới.
-- source_record_id phân biệt dòng nguồn kể cả khi giá trị giống nhau. request_id giữ nguyên trong vòng đời; event_id giữ nguyên khi retry nhưng khác giữa request và dropoff. Khử trùng event theo (replay_id,event_id), nhu cầu theo (replay_id,request_id).
+- source_record_id phân biệt dòng nguồn kể cả khi giá trị giống nhau. request_id giữ nguyên trong vòng đời; event_id giữ nguyên khi retry nhưng khác giữa request, pickup và dropoff. Khử trùng event theo (replay_id,event_id), nhu cầu theo (replay_id,request_id).
 - Đồng hồ mô phỏng chung cung cấp now và tốc độ; vẫn tiến khi nguồn không phát. Timeout, gia hạn, trip_started_at và due_at dùng cùng clock. Mốc xử lý thực có thể ghi riêng để đo độ trễ.
 
 ## Nguồn và manifest: Chính → Mạnh/Bảo
@@ -15,51 +15,71 @@ Parquet dùng source_record_id, pickup_at, dropoff_at, pickup_zone_id, dropoff_z
 
 Manifest có dataset_role (history/replay/zone_lookup/zone_boundaries), source_id/source_version, raw_path, parquet_path, range_start/end, row_count, coverage và status. Khoảng và Parquet có thể trống với nguồn lookup. Coverage phải mô tả phạm vi thời gian/vùng đã xác nhận, không chỉ là một cờ tải xong. Chỉ ready sau khi các đầu ra đã ghi hoàn chỉnh; history kết thúc không muộn hơn đầu replay. URI là HDFS mà tiến trình nhận đọc được.
 
-## Kafka: Chính → router, archive
+## Kafka và các đơn vị nghiệp vụ
 
-| Trường | Kiểu/quy tắc |
+Hợp đồng đích schema_version=2 cho mô hình ba sự kiện. Bản schema cũ cần adapter rõ ràng hoặc cách ly; không đoán pickup từ payload cũ. Chung: event_id, replay_id, scope_id, event_type, event_at có offset/UTC, source_kind (nyc_replay/simulator/dispatch), source_file/source_record_id nếu có. Kafka key đề xuất theo replay_id/request_id cho request, replay_id/trip_id cho vòng đời trip. Không dựa vào thứ tự giữa hai key để bảo đảm pickup luôn đến trước dropoff.
+
+| Loại | Trường nghiệp vụ | Khóa duy nhất để đếm | Zone / event time |
+| --- | --- | --- | --- |
+| ride_requested | request_id, requested_at, pickup_zone_id, dropoff_zone_id, pickup_lat/lon, dropoff_lat/lon, source_duration_seconds hoặc thời gian nguồn, coordinates_simulated | (replay_id,request_id) | pickup_zone_id / requested_at |
+| pickup_completed | trip_id, request_ids (1 hoặc 2), picked_up_at, pickup_zone_id, pickup_lat/lon, trip_mode (solo/shared), outbox_id | (replay_id,trip_id) | zone đón đầu tiên / picked_up_at |
+| dropoff_completed | trip_id, request_id, completed_at, dropoff_zone_id, dropoff_lat/lon, scheduled_event_id | (replay_id,trip_id,request_id) | dropoff_zone_id / completed_at |
+
+Tất cả loại có event_at bằng thời gian nghiệp vụ tương ứng. Lat/lon WGS84; đưa vào PostGIS theo (lon,lat). Thiếu/lỗi dữ liệu ghép không loại nhu cầu nếu thời gian/vùng đón hợp lệ. source_duration_seconds không âm. Trip không đồng nghĩa xe phân biệt; một pickup cho cả trip ghép. Số khách trả đếm theo request, không đếm theo trip.
+
+Trip hoàn tất là kết quả dẫn xuất khi có dropoff của đủ request_ids. completed_trip_count tăng một lần tại max(completed_at); quy ước zone là zone của lượt trả cuối, nếu cùng timestamp chọn request_id theo thứ tự từ điển làm tie-break ổn định. shared_trip_count đếm tại pickup, không tại dropoff. Batch cần đọc thành viên/trạng thái từ sự kiện trước cutoff kể cả pickup thuộc cửa sổ/ngày trước. Stream buffer sự kiện chưa đủ quan hệ, không tự tạo trip từ dropoff đến sớm.
+
+## Grain và bảng phân tích — Mạnh ↔ Bảo
+
+| Bảng/view đích | Khóa / nội dung |
 | --- | --- |
-| schema_version | Số nguyên; phiên bản khởi đầu đề xuất 1 |
-| event_type | ride_requested hoặc dropoff_completed |
-| event_id, replay_id | Chuỗi không rỗng |
-| event_at | Timestamp có múi giờ của sự kiện nghiệp vụ |
-| source_kind | nyc_replay hoặc simulator; phân biệt nguồn mô phỏng |
-| source_file, source_record_id | Định danh nguồn nếu có, không dùng vị trí thay đổi sau mỗi lần chạy |
+| batch_runs | (scope_id,batch_version); input_snapshot_id, cutoff, archive_offset_ranges, admission_policy_version, coverage, từng trạng thái B1/B2/B3, publication_status |
+| batch_window_counts | (scope_id,batch_version,zone_id,window_start); replay_id nếu có, window_end, request_count, pickup_trip_count, dropoff_request_count, completed_trip_count, shared_trip_count, coverage, is_final |
+| stream_window_counts | (scope_id,zone_id,window_start); các count cùng tên, window_end, coverage, is_final, snapshot hai baseline; version riêng cho writer request và writer vòng đời |
+| stream_minute_counts | (replay_id,zone_id,minute_start); request_count, pickup_trip_count, dropoff_request_count, completed_trip_count, shared_trip_count, update_version, coverage, is_final |
+| historical_baseline | (scope_id,batch_version,baseline_type,zone_id,slot_15m,weekday_key,applies_on); weekday_key=0 cho all_days, 1–7 cho same_weekday; request_sum, reference_windows, baseline_value, history_start/end, cutoff |
+| demand_gradients | (scope_id,batch_version,zone_id,business_date,series_end,pair_index); previous/current_window_start và count, gradient, K, cutoff; trả đủ K khung và K−1 cặp |
+| daily_pickup_averages | (scope_id,batch_version,zone_id,business_date); cutoff, pickup_trip_sum, active_window_count, average_pickup_trips, is_day_final |
 
-ride_requested bổ sung request_id, requested_at, pickup_zone_id, dropoff_zone_id, pickup_lat/lon, dropoff_lat/lon, source_pickup_at/source_dropoff_at hoặc source_duration_seconds, coordinates_simulated. Tọa độ WGS84 (lat −90..90, lon −180..180), thời lượng không âm. Trường ghép lỗi/thiếu có thể null cùng lý do: không làm mất nhu cầu có requested_at và vùng đón hợp lệ.
+Thay bảng demand_windows dự kiến trước đây bằng hai view 15 phút có nguồn rõ. Không lấy stream_window_counts làm đáp án cho batch_window_counts; không cộng hai bảng. Chọn đúng một batch_version đã công bố khi truy vấn, không cộng nhiều phiên bản. Snapshot hai baseline của Stream 1 giữ nguyên khi batch thay đổi.
 
-dropoff_completed bổ sung trip_id, request_id, completed_at, dropoff_zone_id, dropoff_lat/lon và scheduled_event_id. event_at = completed_at. Mỗi request được phục vụ có một hoàn tất nghiệp vụ; trip ghép có hai request và hai hoàn tất. Không tăng nhu cầu khi nhận dropoff.
+Batch 1 tính cả khung 0 đủ coverage; không mẫu trả NULL, không dùng ngày applies_on. Batch 2 chỉ K khung liên tiếp cùng ngày hiện tại, tính cả 0 đủ coverage; thiếu K/thiếu khung trả insufficient_data. Batch 3 chỉ khung P>0 trong ngày hiện tại, average_pickup_trips=pickup_trip_sum/active_window_count; mẫu số 0 trả NULL. Cả ba tính mỗi 15 phút, staging trước, tổng hợp/công bố cuối sau cả ba. Thiếu dữ liệu hợp lệ không làm run thất bại; lỗi thực thi thì không công bố bộ kết quả hoàn chỉnh.
 
-## Nhu cầu và batch: Mạnh ↔ Bảo
+Repository đề xuất: begin_batch_run(snapshot), stage_baselines, stage_gradients, stage_daily_pickups, publish_batch_run(version,window_counts), read_baseline_pair, read_latest_trend. publish_batch_run kiểm tra ba trạng thái và staging, công bố nguyên tử. history NYC phục vụ baseline khởi tạo; event archive phục vụ batch định kỳ và đếm sau điều phối; ghi rõ scope, không trộn/replay lại cùng nguồn lần hai.
 
-| Đầu ra | Khóa và nội dung bàn giao |
-| --- | --- |
-| demand_windows | (scope_id, zone_id, window_start); replay_id nếu có, window_end, request_count, coverage, is_final, update_version, snapshot hai baseline |
-| historical_baseline | (scope_id, batch_version, baseline_type, zone_id, slot_15m, weekday_key, applies_on); baseline_type all_days/same_weekday, weekday_key đề xuất 0 cho all_days và 1–7 cho same_weekday để tránh khóa nullable; request_sum, reference_windows, baseline_value, history_start/end, cutoff |
-| demand_gradients | (scope_id, batch_version, zone_id, series_end, pair_index); previous/current_window_start, previous/current_count, gradient, K, cutoff; truy vấn trả nguyên chuỗi K khung/K−1 cặp |
+## Bản ghi phút và serving view 60 phút
 
-Baseline chỉ dùng ngày trước applies_on; không có mẫu thì baseline_value NULL, reference_windows=0. Khung đủ độ phủ không request là 0; thiếu độ phủ không phải 0. Batch công bố hai loại cùng phiên bản nguyên tử, không tính lại baseline trong giao dịch chốt. Gradient chỉ từ các khung đã chốt liên tiếp; stream đọc series_end không sau thời điểm dữ liệu xử lý.
+`stream_minute_counts` là tổng phát sinh trong phút, không phải snapshot tổng rolling 60 phút. Ví dụ delta 15 giây là 2,1,3,2 → ghi tổng 2,3,6,8 vào cùng khóa. Các khoảng lấy theo event time; sự kiện đúng 09:01:00 thuộc phút mới, dù lần xử lý lúc đó đang kết thúc dữ liệu phút cũ. Không tạo thêm một dòng cho mỗi trigger.
 
-Giao diện repository đề xuất: read_final_windows(scope,cutoff), publish_baselines(version,rows), publish_gradients(version,rows), read_baseline_pair(scope,zone,window), read_latest_trend(scope,zone,as_of), upsert_window(total,version,snapshot), finalize_window(key,coverage). Đây là tên giao diện dự kiến, các file hiện chưa định nghĩa hàm. Không truyền Spark DataFrame vào nghiệp vụ API/ghép; adapter JDBC/staging xử lý riêng đầu ra batch.
+Dùng `upsert_minute_total(key, totals, update_version)` gán tổng tuyệt đối từ state bền vững, bỏ version cũ; retry giữ version và tổng. Mỗi phiên/bucket có một writer logic; checkpoint giữ thế hệ/version qua restart. Nếu triển khai delta thay thế, bắt buộc ledger batch_id để chỉ áp dụng một lần. Bucket không sự kiện vẫn có 0 khi coverage đủ, thiếu dữ liệu có trạng thái riêng.
 
-## Cảnh báo: Mạnh → consumer điều phối/Bảo
+Serving tại mốc phút t đọc tổng pickup_trip_count của [t−60 phút,t), bao gồm toàn bộ zone; giới hạn state 60 phút cộng buffer watermark. Phút đang mở là provisional riêng. PostgreSQL giữ toàn bộ lịch sử phút, không TTL 60 phút. Có thể tính snapshot dashboard bằng SUM bucket phút theo as_of, không bắt buộc thêm bảng rolling snapshot. Đến muộn trước final cập nhật bucket cũ; truy vấn dựng lại view bị ảnh hưởng từ dữ liệu đã cập nhật.
 
-Payload có replay_id, zone_id, window_start/end, request_count và conditions (mỗi phần tử có alert_id, baseline_type, baseline_value, reference_windows, publication_version). alert_id ổn định theo (replay_id,zone_id,window_start,baseline_type). Cùng lần vượt hai mức có hai conditions trong một thông điệp. Kèm trend gồm counts, gradients, K, version, series_end hoặc trend_unavailable_reason.
+`upsert_stream_request_total` chỉ ghi request_count và baseline snapshot sau Kafka ack của cảnh báo nếu có. `upsert_stream_lifecycle_totals` chỉ ghi pickup/dropoff/completed/shared, không ghi đè request_count. Mỗi writer có version riêng, transaction ghép cột tại cùng khóa. Chốt row chỉ khi cả hai writer hoàn tất cùng phạm vi và coverage. Bản ghi phút của Stream 2 độc lập với barrier cảnh báo baseline.
 
-Consumer phải khử trùng từng alert_id. Kafka ack trước upsert tổng tương ứng; crash ở giữa có thể gửi lại cùng ID. Không tuyên bố exactly-once xuyên Kafka/PostgreSQL. Snapshot baseline và tiến độ cảnh báo phải bền vững để restart không đổi điều kiện hoặc bỏ sót lần vượt.
+## Hai loại cảnh báo
 
-## Ghép và lịch hoàn tất: Mạnh/API ↔ Bảo ↔ Chính
+- Baseline: alert_type=baseline_crossing; replay_id, zone_id, window_start/end, request_count, conditions chứa alert_id/type/value/reference_windows/publication_version. ID ổn định theo phiên–zone–window–baseline_type. Kèm trend counts/gradients/K/version/series_end hoặc lý do thiếu. Điều kiện prev<=baseline<current; giữ snapshot bền vững. Kafka ack trước ghi request_count 15 phút tương ứng.
+- Spike: alert_type=demand_spike; ID theo phiên–zone–interval_start, current_interval_start/end, previous_interval_start/end, current_count, previous_count, k, M, ratio nullable, reason, evaluated_at, input_cutoff. So hai khoảng 15 giây liên tiếp đủ dữ liệu, current>k*previous AND current>M. previous=0 thì ratio NULL/reason=increase_from_zero; thiếu coverage thì chưa đánh giá. State giữ bucket trong watermark, đánh giá lại nếu cập nhật nhưng không phát lại bucket đã cảnh báo. Payload giữ số liệu thực tế tại lần phát; không thu hồi cảnh báo khi dữ liệu muộn làm tỷ lệ đổi.
 
-Request khóa (replay_id,request_id), có hai điểm, thời lượng nguồn, requested_at, expires_at, trạng thái và version. Đề xuất tham chiếu đúng hai request cùng phiên; cặp từ chối chuẩn hóa ID theo thứ tự. Tọa độ đưa vào PostGIS theo (lon,lat), geography(Point,4326); hai điều kiện bán kính đều <=500 mét. Không dùng zone làm điều kiện ghép.
+Consumer khử trùng alert_id. Không tuyên bố exactly-once xuyên Kafka/PostgreSQL; crash có thể phát lại cùng ID.
 
-Giao diện kho đề xuất: find_candidates, reserve_pair, record_consent, confirm_pair, reject_pair, extend_request, start_solo, expire_requests, complete_request. Thao tác nhận thời gian mô phỏng, expected_version và idempotency_key khi cần. Kho kiểm tra lại trạng thái/hạn dưới khóa, trả trạng thái/version hiện tại nếu xung đột. Hai bằng chứng đồng ý gắn từng request mới xác nhận ghép.
+## Điều phối, pickup outbox và lịch trả
 
-Trip, trip_requests và scheduled_events tạo trong cùng giao dịch. Lịch có event_id duy nhất, replay_id, trip_id, request_id, due_at, payload, trạng thái/claim/ack. due_at = trip_started_at + thời lượng của request. Simulator dùng claim_due_events và acknowledge_sent; dropoff được consumer xử lý mới đánh dấu request hoàn tất. Trip ghép chờ cả hai người.
+Cache Stream 3 không là nguồn quyết định bền vững. Kho giữ request theo (replay_id,request_id), state/version, hạn và consent_reference từ phía người dùng. Cặp đồng ý đã có trước khi điều phối; `commit_dispatch` xác minh bằng chứng cho hai thành viên và tính hợp lệ dưới khóa, không yêu cầu UI hỏi thêm lần nữa. Các giao diện find_candidates/reserve_pair, reject_pair, extend_request, start_solo và expire_requests vẫn giữ nguyên mục tiêu.
 
-Hạn ban đầu 3 phút độc lập; đề xuất không reset hạn. Hết hạn chuyển chờ phản hồi gia hạn, không tự đi riêng. Thời lượng gia hạn chưa chốt, phải cấu hình; số lần không giới hạn. Từ chối cặp và hết hạn là hai sự kiện khác nhau.
+Cả hai bán kính <=500m, geography; không lọc theo zone. Khóa theo thứ tự ID để tránh deadlock, chốt duy nhất một trip cho request. Cùng transaction tạo trips/trip_requests, một pickup outbox event với request_ids và lịch trả từng người. Publisher Chính đọc outbox qua schedule_repository, phát pickup rồi acknowledge; crash sau gửi thì retry cùng event_id. Kho bảo đảm dropoff không được phát trước khi pickup có ack; consumer vẫn chịu được arrival khác thứ tự. trip_started_at=picked_up_at trong demo, due_at=trip_started_at+thời lượng nguồn từng request. Không quản lý xe rảnh/vehicle_id.
 
-## Archive và retention: Chính ↔ Bảo
+Từ chối cặp chuẩn hóa ID không thứ tự; hết hạn không ghi cặp bị từ chối. Hạn ban đầu 3 phút độc lập, không reset khi tạo đề xuất; gia hạn không giới hạn số lần với duration cấu hình. Không tự đi riêng khi im lặng. Các chuyển trạng thái dùng expected_version và idempotency_key; retry trả cùng trip, không tạo pickup hoặc lịch thứ hai.
 
-Archive receipt có archive_id, HDFS path, nguồn/phiên, phạm vi topic-partition-offset hoặc danh sách event/journal ID, trạng thái committed. Chỉ ghi receipt sau khi dữ liệu bền vững. Raw có thể trùng; downstream khử trùng theo ID. Journal chuyển trạng thái API phải được chuyển sang HDFS trước dọn, cùng sự kiện request/dropoff.
+## Archive, độ phủ và đối soát
 
-Dọn dữ liệu chỉ khi tổng hợp bền vững, trip/request kết thúc, lịch xong, archive đã xác nhận và ledger còn bảo vệ retry. Thời hạn ledger phải bao phủ khoảng retry/replay được hỗ trợ; không dọn request còn chờ/gia hạn. Kho cung cấp read_archive_receipts/record_archive_receipt và kiểm tra điều kiện dọn trong transaction.
+Archive receipt gồm archive_id, HDFS path, scope/replay, event/journal IDs hoặc topic-partition-offset ranges, status committed. HDFS giữ đủ ba loại, journal và manifest coverage. Batch run khóa snapshot immutable để không thấy file đang ghi. Event sau chốt cần admission ledger/policy metadata (event ID, event time, ingest offset/time, watermark decision, reason) để batch áp dụng cùng tập được chấp nhận với stream; ledger chỉ xác định đầu vào, không cung cấp số đếm đối chứng.
+
+Đối soát bằng full outer join batch/stream trên scope, zone, window_start/end của phiên bản/cutoff đã chọn; count thiếu khi coverage chưa đủ là pending, không mặc định 0. Chỉ equal/mismatch khi cả hai final và archive/consumer offsets xác nhận đủ. Hiển thị delta riêng của năm count, baseline snapshot/version, status và lý do. Baseline phần trăm NULL nếu thiếu/0; không mất zone chưa có lookup.
+
+Ví dụ 5 request, một cặp ghép và ba trip riêng, tất cả đón/trả trong một zone/window: request=5, pickup_trip=4, dropoff_request=5, completed_trip=4, shared_trip=1 ở cả hai view. Pickup ở khung trước/dropoff ở khung sau cần state xuyên khung, không buộc mọi loại cùng tăng một lúc. Baseline là trung bình lịch sử, không yêu cầu bằng số request hiện tại.
+
+## Retention
+
+Chỉ dọn chi tiết vận hành kết thúc sau khi số liệu bền vững, raw/journal có receipt, lịch đã xử lý và dedup bảo vệ retry. Không dọn request chờ/gia hạn hoặc trip chưa xong. Retention này không áp dụng stream_minute_counts hay lịch sử batch/stream phân tích: PostgreSQL giữ toàn bộ theo yêu cầu hiện tại. Cache/serving chỉ giữ 60 phút không kéo theo xóa dữ liệu kho.

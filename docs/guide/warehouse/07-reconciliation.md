@@ -1,29 +1,30 @@
-# 3.3 · SQL đối soát
+# 3.3 · Đối soát batch–stream và dashboard
 
-**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Cung cấp truy vấn kiểm chứng từng đầu ra; cả nhóm tự ghép demo 4.1–4.2.
+SQL đối soát độc lập hai view cùng cửa sổ; giữ truy vấn cảnh báo, xu hướng và vòng đời.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Nhận scope_id/replay_id, vùng, cửa sổ hoặc request/trip ID. Trả số yêu cầu, hai baseline đã dùng/số mẫu/version, điều kiện vượt, gradient K và K−1 phần tử, khoảng cách/hạn/trạng thái ghép, chuỗi vòng đời và receipt HDFS.
+Scope/replay, batch_version, zone, window và cutoff. Kết quả có năm count batch/stream, delta, equal/mismatch/pending, coverage/offsets; dashboard minute/60m và daily average riêng.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Đối soát nhu cầu bằng snapshot cửa sổ, không join baseline hiện hành thay thế. Phần trăm = 100*(count-baseline)/baseline; 0/thiếu trả NULL kèm lý do. Left join lookup để giữ vùng chưa có tên. Truy vấn ghép hiển thị cả khoảng cách đón/đến; vòng đời nối request → proposal → trip → lịch → hoàn tất → archive → điều kiện dọn.
+Full outer join để lộ dòng thiếu; chỉ so khi cùng tập sự kiện, cả hai final và archive đủ. Không mặc định thiếu thành 0. Mỗi count dùng zone/time theo contracts; trip hoàn tất tại lượt trả cuối. Baseline dùng snapshot đã giữ, ratio NULL nếu thiếu/0. View 60m so đúng khoảng 60m, không so một window 15m. Giữ trace request→trip→pickup→dropoff→HDFS; so bằng nhau chỉ chứng minh nhất quán số đếm.
 
 ## Khu vực code
 
 - [warehouse/sql/queries/compare_pickup_demand.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/queries/compare_pickup_demand.sql)
 - [warehouse/sql/queries/demand_trends.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/queries/demand_trends.sql)
 - [warehouse/sql/queries/ride_lifecycle.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/queries/ride_lifecycle.sql)
+- [warehouse/sql/queries/reconcile_views.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/queries/reconcile_views.sql)
 
 ## Tiêu chí hoàn thành
 
-Đọc được các kết quả theo đúng phiên; giữ dòng thiếu lookup/baseline; baseline mới không đổi kết quả đối soát cũ; thấy đủ chuỗi gradient và dấu vết hoàn tất/lưu trữ.
+5 request/1 cặp/3 solo cùng khung ra 5,4,5,4,1 hai bên; pending chưa coi mismatch; trip qua nhiều khung/zone vẫn đúng; lookup thiếu không mất dòng.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

@@ -1,20 +1,20 @@
-# 2.3 mở rộng · Stream 2: tìm cặp và vòng đời
+# 2.3 · Stream 3: ghép và điều phối
 
-**Phụ trách:** Mạnh. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Mạnh. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Điều phối tìm cặp, timeout và nhận trả khách; kho sở hữu khóa/giao dịch.
+Tìm cặp bằng cache/PostGIS; điều phối các request đã có đồng ý phía người dùng; xử lý vòng đời.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Nhận ride_requested đủ ghép hoặc dropoff_completed. Truy vấn ứng viên qua matching_repository; đề xuất đúng hai request cùng phiên, khoảng cách đón và đến đều <=500m. Các thao tác dùng expected_version và thời gian mô phỏng.
+Cùng phiên, request còn hạn, consent_reference hợp lệ, hai khoảng cách <=500m. commit_dispatch trả trip_id và pickup outbox; pickup một trip có một/hai request. Dropoff theo từng request.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Xét người chờ lâu nhất, rồi khoảng cách đón/đến, thời điểm đặt và ID. Zone không phải điều kiện ghép. Kho khóa lại khi giữ cặp; bỏ cặp đã chủ động từ chối. Hạn riêng ban đầu 3 phút, tạo đề xuất không reset. Timeout hủy đề xuất, người còn hạn tiếp tục, người hết hạn chờ gia hạn; không tự đi riêng. Dropoff cập nhật từng người, đủ cả hai mới hoàn tất trip; không tăng nhu cầu.
+Cache không quyết định bền vững; kho khóa/kiểm tra lại trạng thái và consent rồi tạo trip/outbox/lịch nguyên tử. Không thêm bước hỏi lại. Chọn ứng viên ổn định theo thời gian chờ, khoảng cách, ID; zone không là điều kiện. Hạn 3 phút riêng; hết hạn chờ gia hạn, không tự solo. Cặp từ chối không đề xuất lại; timeout khác từ chối. Hoàn tất từng người, đủ thành viên mới đóng trip.
 
 ## Khu vực code
 
@@ -23,6 +23,6 @@ Xét người chờ lâu nhất, rồi khoảng cách đón/đến, thời đi�
 
 ## Tiêu chí hoàn thành
 
-Khác zone vẫn ghép nếu đủ gần; không giữ một request trong hai cặp; timeout vẫn chạy khi stream vắng; hoàn tất một người chưa đóng trip ghép; retry không hồi sinh trip.
+Hai request ghép thành một pickup, hai dropoff; concurrent/retry không tạo hai trip; timeout vẫn tiến khi vắng sự kiện; không tăng request khi pickup/dropoff.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

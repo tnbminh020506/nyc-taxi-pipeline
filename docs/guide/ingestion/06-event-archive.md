@@ -1,20 +1,20 @@
-# Sơ đồ · Lưu sự kiện raw vào HDFS
+# Sơ đồ · Archive sự kiện và snapshot cho batch
 
-**Phụ trách:** Chính. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Chính. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Consumer riêng lưu cả hai loại sự kiện và dữ liệu truy vết; cung cấp xác nhận lưu cho kho.
+Lưu ba loại sự kiện và journal xuống HDFS, cung cấp đầu vào batch độc lập với stream counts.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Đầu vào Kafka cùng topic/partition/offset, event_id, replay_id; thêm lịch sử chuyển trạng thái bền vững từ kho. Đầu ra raw HDFS và receipt gồm archive_id, path, phạm vi offset/ID, trạng thái commit. Raw được phép trùng; receipt chỉ xác nhận phần đã ghi bền vững.
+Raw event v2 cùng Kafka topic/partition/offset; journal chuyển trạng thái; receipt HDFS committed và coverage, input_snapshot_id. Nhận metadata admission/watermark từ xử lý để batch áp dụng cùng tập hợp hợp lệ.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Ghi theo lô vào đường dẫn phân vùng nguồn/phiên/ngày; commit dữ liệu rồi mới checkpoint offset và ghi receipt. Restart có thể đọc lại, giữ định danh truy vết. Lưu trạng thái API qua outbox/journal kho để không mất gia hạn/từ chối. Thống nhất receipt với archive_repository.py; Kafka nhận không đồng nghĩa HDFS đã lưu.
+Ghi lô immutable rồi công bố receipt/checkpoint; raw có thể trùng. Snapshot cho batch không đọc file đang ghi. Không coi Kafka ack là archive ack. Duy trì nguồn/phiên, lưu cả quyết định loại sau chốt, chuyển journal qua outbox để không mất dấu vết.
 
 ## Khu vực code
 
@@ -22,6 +22,6 @@ Ghi theo lô vào đường dẫn phân vùng nguồn/phiên/ngày; commit dữ 
 
 ## Tiêu chí hoàn thành
 
-Đọc lại được request, dropoff và lịch sử xác nhận/từ chối; lỗi HDFS không tạo receipt thành công; retry không mất raw; kho kiểm tra receipt trước dọn.
+Batch đọc lại đủ đặt/đón/trả; retry không mất sự kiện; lỗi HDFS chặn receipt; đủ metadata xác định cửa sổ pending/final và tái lập chính sách dữ liệu muộn.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

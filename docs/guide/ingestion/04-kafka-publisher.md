@@ -1,27 +1,28 @@
-# 1.4 · Phát sự kiện Kafka
+# 1.4 · Kafka và phát pickup sau điều phối
 
-**Phụ trách:** Chính. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Chính. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Producer taxi-events và cấu hình topic; phối hợp Mạnh về taxi-alerts.
+Producer dùng chung cho replay, pickup outbox và simulator; topic taxi-events gồm ba loại sự kiện.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Nhận event đã chuẩn hóa, trả ack hoặc lỗi gửi. taxi-events chứa ride_requested/dropoff_completed; giữ replay_id, schema_version và event_id. taxi-alerts do pipeline cảnh báo phát.
+Schema v2: ride_requested, pickup_completed, dropoff_completed theo contracts.md. Pickup có trip_id và request_ids, một event/trip; nhận outbox đã commit từ Bảo, trả ack hoặc lỗi.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Tách serialization và gửi khỏi replay/scheduler. Chỉ báo gửi thành công sau ack; retry giữ ID. Chốt partition key phù hợp thứ tự theo request trong phiên; consumer vẫn phải khử trùng. Ghi số gửi/thử lại/lỗi; cấu hình bootstrap servers nhìn từ host/container trong docker-compose.yml.
+Tách serialize/gửi khỏi nghiệp vụ. Bổ sung pickup_publisher đọc/claim outbox, phát ngay sau chốt trip và ack. Retry giữ event_id; không tự tạo trip. Phối hợp Kafka key, endpoint host/container và taxi-alerts với Mạnh. Dropoff chỉ đủ điều kiện gửi sau ack pickup.
 
 ## Khu vực code
 
 - [ingestion/kafka_publisher.py](../../../src/nyc_taxi_pipeline/ingestion/kafka_publisher.py)
+- [ingestion/pickup_publisher.py](../../../src/nyc_taxi_pipeline/ingestion/pickup_publisher.py)
 
 ## Tiêu chí hoàn thành
 
-Payload đọc được từ Kafka; lỗi broker không bị báo thành công; gửi lại giữ ID; có hướng dẫn endpoint và topic để Mạnh kết nối.
+Lỗi broker không báo thành công; restart không mất pickup; một cặp ghép chỉ một pickup nghiệp vụ dù gửi lại; router/archive đọc đủ ba loại.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.

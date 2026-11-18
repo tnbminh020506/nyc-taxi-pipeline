@@ -1,28 +1,28 @@
-# 3.1 · Schema PostgreSQL/PostGIS
+# 3.1 · Schema phân tích và vận hành
 
-**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai.
+**Phụ trách:** Bảo. **Trạng thái:** khung giao việc, chưa triển khai logic.
 
 ## Công việc và phạm vi phụ trách
 
-Sở hữu DDL, khóa, index và kiểu dữ liệu cho phân tích/vận hành.
+DDL PostGIS, khóa/index cho ba batch/stream, không giữ mô hình demand_windows mơ hồ.
 
 ## Hợp đồng dữ liệu và bàn giao
 
-Bảng đích: taxi_zones, demand_windows, historical_baseline, demand_gradients, ride_requests, match_proposals, rejected_pairs, trips, trip_requests, scheduled_events; thêm dedup ledger, transition journal và archive receipts. Xem ../contracts.md cho khóa liên module.
+Bảng/khóa chính xác theo contracts.md: batch_runs, batch_window_counts, stream_window_counts, stream_minute_counts, historical_baseline, demand_gradients, daily_pickup_averages; taxi_zones và request/proposal/trip/members/schedule/outbox/dedup/journal/receipt.
 
-Đối chiếu [hợp đồng chung](../contracts.md) và [thiết kế tổng thể](../giao-viec-demo-taxi.md).
+Chi tiết khóa, schema và thời gian: [hợp đồng chung](../contracts.md). Luồng: [thiết kế tổng thể](../giao-viec-demo-taxi.md).
 
 ## Hướng triển khai
 
-Timestamp dùng timestamptz, trung bình/gradient dạng thập phân, số đếm nguyên không âm. Tọa độ geography(Point,4326), index không gian. Ràng buộc một request chỉ vào một trip và một đề xuất hiệu lực. demand_windows thay replay_pickup_counts/baseline_history_windows, không giữ hai nguồn cùng đóng góp batch. Cho phép mã vùng chưa có tên lookup.
+Timestamp timestamptz, counts nguyên không âm, trung bình thập phân; geography(Point,4326). Unique request-trip, một pickup/trip và lịch/request. Hai writer stream có version riêng. batch_version được truy vấn duy nhất, không cộng bản sao. Bảng phút giữ toàn bộ; khóa không nullable hoặc có quy tắc NULL rõ.
 
 ## Khu vực code
 
-- [warehouse/sql/schema.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/schema.sql)
 - [warehouse/connection.py](../../../src/nyc_taxi_pipeline/warehouse/connection.py)
+- [warehouse/sql/schema.sql](../../../src/nyc_taxi_pipeline/warehouse/sql/schema.sql)
 
 ## Tiêu chí hoàn thành
 
-DDL tạo đủ bảng/index/ràng buộc; lỗi FK/unique có xử lý; các module thống nhất khóa/version; không còn cơ chế chốt SQL tự cập nhật baseline.
+Grain phân biệt phút/15p/ngày, batch/stream riêng; thiếu lookup vẫn giữ số liệu; DDL đáp ứng idempotency và publication barrier.
 
-Bàn giao schema/chữ ký gọi đã chốt, ví dụ đầu vào–đầu ra nhỏ và log kiểm tra riêng của module. Không coi việc có file khung là đã hoàn thành chức năng.
+Bàn giao ví dụ đầu vào–đầu ra và log kiểm tra module; không coi khung TODO là chức năng hoàn chỉnh. Kiểm thử/demo toàn tuyến 4.1–4.2 do cả nhóm tự thực hiện.
