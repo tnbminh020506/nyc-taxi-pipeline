@@ -1,0 +1,2 @@
+-- TODO: 3.2 · Công bố sau ba batch.
+-- Guide: docs/guide/warehouse/03-batch-publication.md

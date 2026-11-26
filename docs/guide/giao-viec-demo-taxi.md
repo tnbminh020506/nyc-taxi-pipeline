@@ -1,148 +1,276 @@
-# Hướng dẫn triển khai pipeline taxi NYC
+# Thiết kế và giao việc pipeline taxi NYC
 
-> Cập nhật 10/11/2026 theo nhóm trưởng: bước 1.1 của Chính chuyển sang DuckDB đọc Parquet trực tiếp từ TLC vì API nguồn đang lỗi. JSON API cũ được giữ làm fixture/lịch sử kiểm thử; không còn yêu cầu gọi v2/v3 cho luồng mặc định.
+Cập nhật 18/11/2026. Đây là đặc tả triển khai; Python/SQL hiện là khung TODO, chưa phải hệ thống đã chạy. Đọc [bản đồ công việc](README.md) và [hợp đồng dữ liệu](contracts.md). Mục 4.1–4.2 do cả nhóm tự thực hiện; lần cập nhật này không triển khai test/demo toàn tuyến.
 
-> Yêu cầu demo đã chốt: history/replay khoảng **3:2 theo số bản ghi hợp lệ** (60%/40%), history trước replay, không chia ngẫu nhiên. Bộ demo hiện tại dùng hai thứ Hai 06/01 và 20/01/2025, cùng 08:00–10:00 giờ New York: 8.461/5.651 dòng, đạt 59,96%/40,04%. Ưu tiên nguồn đã cache, không gọi lặp TLC khi kiểm thử hoặc phát lại. [Prompt giao agent làm ban đêm](../overnight-ingestion.md).
+## 1. Luồng tổng thể
 
-> Cập nhật tiếp theo từ Minh (`origin/main`, `0d1b775`): **lưu nguồn, Parquet và manifest lên HDFS dùng chung trước**, sau đó Python đọc replay từ HDFS để phát Kafka. Hợp nhất với hướng TLC/DuckDB và tỉ lệ 60/40 đã chốt; các mô tả API cũ trên main không làm thay đổi nguồn chính.
-
-## Tổng quan luồng quy trình
-
-Demo trả lời câu hỏi **“Khu vực nào ghi nhận nhiều chuyến đón khách hơn mức lịch sử trong cùng khung 15 phút?”**
-
-Hệ thống lấy dữ liệu Yellow Taxi từ **file Parquet tháng của TLC qua DuckDB**. Tầng **ingestion** lọc hai khoảng thời gian đã chọn, lưu Parquet nguồn, Parquet lịch sử/phát lại, CSV lookup, provenance và manifest trên **HDFS dùng chung**.
-
-Tầng **processing** dùng Spark Batch để tính số chuyến đón khách trung bình theo khu vực, thứ trong tuần và khung 15 phút. Với tập phát lại, Python tạo các sự kiện đón khách và gửi dần qua Kafka. Spark Structured Streaming đọc các sự kiện đó để đếm số chuyến theo khu vực trong từng cửa sổ 15 phút.
-
-Tầng **data warehouse** lưu kết quả tổng hợp của hai nhánh vào các bảng PostgreSQL và dùng Taxi Zone Lookup để hiện tên khu vực. Người xem chọn một phiên phát lại và một cửa sổ để truy vấn số chuyến quan sát, mức lịch sử và phần trăm chênh lệch.
+Có **ba batch**, chạy mỗi 15 phút, và **ba stream**. Request đo nhu cầu; trip đo lượt điều phối/đón; trả khách đếm theo request. Không gọi số trip là số xe phân biệt, không quản lý đội xe/vehicle_id trong phạm vi này.
 
 ```mermaid
-flowchart TD
-    TLC["TLC Parquet tháng · Yellow Taxi"]
-    TLC --> SOURCE["1.1 · DuckDB đọc và lọc Parquet HTTPS"]
-    SOURCE --> RAW["1.2 · HDFS dùng chung: Parquet nguồn, history/replay, CSV, provenance, manifest"]
+%%{init: {"theme": "base", "themeVariables": {"textColor": "#ffffff", "primaryTextColor": "#ffffff", "secondaryTextColor": "#ffffff", "tertiaryTextColor": "#ffffff", "nodeTextColor": "#ffffff", "titleColor": "#ffffff", "edgeLabelBackground": "transparent", "background": "transparent"}, "themeCSS": ".nodeLabel, .nodeLabel p, .nodeLabel span, .edgeLabel, .edgeLabel p, .edgeLabel span, .cluster-label, .cluster-label p, .cluster-label span { color: #ffffff !important; } text, .label text, .cluster-label text, .edgeLabel text { fill: #ffffff !important; } rect.labelBkg { fill: transparent !important; } .labelBkg { background: transparent !important; background-color: transparent !important; } .edgeLabel, .edgeLabel p, .edgeLabel span, .nodeLabel, .nodeLabel p, .nodeLabel span, .cluster-label, .cluster-label p, .cluster-label span { background: transparent !important; background-color: transparent !important; }"}}%%
+flowchart LR
+    subgraph SOURCES["NGUỒN DỮ LIỆU"]
+        direction LR
+        NYC["NYC Yellow Taxi<br/>Trip lịch sử đầy đủ"]
+        ZONES["Taxi Zone Lookup<br/>Ranh giới vùng"]
+    end
 
-    RAW -->|"Chuyến đi lịch sử"| BATCH["2.2 · Spark Batch"]
-    RAW -->|"Chuyến đi dành cho phát lại"| REPLAY["1.3 · Python Replay"]
-    REPLAY --> KAFKA["1.4 · Kafka topic taxi-events"]
-    KAFKA --> STREAM["2.3 · Spark Structured Streaming"]
-    RULES["2.1 · Quy tắc chung về thời gian và dữ liệu"] -.-> BATCH
-    RULES -.-> STREAM
+    subgraph INGESTION["1. DATA INGESTION"]
+        direction TB
+        FETCH["1.1 · Thu thập dữ liệu<br/>Theo kỳ history / replay"]
+        STORE["1.2 · Chuẩn hóa và công bố HDFS<br/>Raw · Parquet · lookup · manifest ready"]
+        REPLAY["1.3 · Replay / simulator<br/>Phát yêu cầu đặt xe"]
+        KAFKA["1.4 · Kafka taxi-events<br/>Đặt xe · đón khách · trả khách"]
+        PICKUP["Phát sự kiện đón khách<br/>Một pickup cho mỗi trip đã chốt"]
+        DROPOFF["Simulator trả khách<br/>Phát theo lịch từng request"]
+        ARCHIVE["Archive consumer<br/>Lưu sự kiện và journal vào HDFS"]
+        EVENTS["HDFS lịch sử sự kiện<br/>Snapshot · coverage · receipt"]
+        JACK((" "))
+    end
 
-    SCHEMA["3.1 · Tạo bảng PostgreSQL"] --> LOAD["3.2 · Nạp kết quả vào PostgreSQL"]
-    LOOKUP["Taxi Zone Lookup · CSV"] --> RAW
-    RAW -->|"Bảng tra tên khu vực"| LOAD
-    BATCH -->|"Mức lịch sử"| LOAD
-    STREAM -->|"Số chuyến theo cửa sổ"| LOAD
-    LOAD --> SQL["3.3 · SQL so sánh theo khu vực"]
-    SQL --> RESULT["Tên khu vực · Số chuyến · Mức lịch sử · % chênh lệch"]
+    subgraph PROCESSING["2. DATA PROCESSING"]
+        direction TB
+        subgraph BATCH["NHÁNH BATCH · Chu kỳ 15 phút"]
+            direction TB
+            INPUT["Đọc snapshot đầu vào<br/>Cùng phạm vi và cutoff"]
+            B1["Batch 1 · Baseline nhu cầu<br/>Các ngày trước / cùng thứ tuần trước"]
+            B2["Batch 2 · Gradient trong ngày<br/>K khung liên tiếp đã chốt"]
+            B3["Batch 3 · Lượt đón trung bình trong ngày<br/>Chỉ tính khung có trip đón"]
+            SUMMARY["Tổng hợp cuối sau ba batch<br/>Số đếm 15 phút · kết quả · phiên bản"]
+        end
+        subgraph STREAM["NHÁNH STREAM · Nhịp xử lý 15 giây"]
+            direction TB
+            ROUTE["Chuẩn hóa · khử trùng · phân loại<br/>Theo event time"]
+            S1["Stream 1 · Cảnh báo baseline<br/>Giữ mức tham chiếu của cửa sổ"]
+            S2["Stream 2 · Lưu lượng và spike<br/>Gom theo phút · kiểm tra tăng đột ngột 15 giây"]
+            LIVE["Serving view · 60 phút gần nhất<br/>Số trip đón theo zone"]
+            S3["Stream 3 · Ghép và điều phối<br/>Cache ứng viên · quản lý vòng đời"]
+            JCOUNTS((" "))
+        end
+    end
+
+    subgraph WAREHOUSE["3. DATA WAREHOUSE · PostgreSQL / PostGIS"]
+        direction TB
+        LOOKUP["Bảng tra khu vực<br/>Tên vùng · hình học"]
+        BATCHVIEW["Batch view và kết quả thống kê<br/>Hai baseline · gradient · trung bình ngày<br/>Số đếm 15 phút · phiên bản công bố"]
+        STREAMVIEW["Stream view · Cửa sổ 15 phút<br/>Số đếm · baseline snapshot · trạng thái chốt"]
+        MINUTES["Lịch sử số đếm theo phút<br/>Upsert cùng phiên–zone–phút<br/>Giữ toàn bộ trong PostgreSQL"]
+        OPS["Dữ liệu và giao dịch điều phối<br/>Request · cặp ghép · trip · thành viên<br/>Pickup outbox · lịch trả · journal"]
+        RECEIPTS["Xác nhận archive và khử trùng<br/>Điều kiện dọn chi tiết vận hành"]
+        RETENTION["Retention vận hành<br/>Kiểm tra điều kiện trước khi dọn"]
+    end
+
+    USER["API / client<br/>Đồng ý đã có · gia hạn · chốt riêng"]
+    ALERT["Kafka taxi-alerts<br/>Cảnh báo baseline / tăng đột ngột"]
+    DASH["Dashboard quản trị<br/>Lưu lượng · xu hướng · lịch sử"]
+    AUDIT["Đối soát batch–stream<br/>Cùng phiên · zone · cửa sổ · cutoff"]
+
+    NYC -->|"Trip lịch sử"| FETCH
+    ZONES -->|"Lookup và ranh giới vùng"| FETCH
+    FETCH --> STORE
+    STORE -->|"replay ready"| REPLAY
+    REPLAY -->|"ride_requested"| KAFKA
+    PICKUP -->|"pickup_completed"| KAFKA
+    DROPOFF -->|"dropoff_completed"| KAFKA
+    STORE -->|"history ready: khởi tạo lịch sử nhu cầu"| INPUT
+    EVENTS -->|"Snapshot sự kiện thực tế: batch đối chứng"| INPUT
+    STORE -->|"lookup / ranh giới ready"| LOOKUP
+    KAFKA -->|"Consumer group xử lý"| ROUTE
+    KAFKA -->|"Consumer group archive độc lập"| ARCHIVE
+    ARCHIVE -->|"Ghi bền vững sự kiện và journal"| EVENTS
+    INPUT --> B1
+    INPUT --> B2
+    INPUT --> B3
+    B1 -->|"Kết quả / trạng thái Batch 1"| SUMMARY
+    B2 -->|"Kết quả / trạng thái Batch 2"| SUMMARY
+    B3 -->|"Kết quả / trạng thái Batch 3"| SUMMARY
+    INPUT -->|"Đầu vào đếm độc lập với stream"| SUMMARY
+    SUMMARY -->|"Chờ đủ ba batch rồi công bố nguyên tử"| BATCHVIEW
+    ROUTE -->|"Request hợp lệ để đếm nhu cầu"| S1
+    ROUTE -->|"Request / pickup / dropoff để thống kê"| S2
+    ROUTE -->|"Request để ghép; pickup / dropoff cập nhật vòng đời"| S3
+    S1 -->|"Vượt baseline; ID cảnh báo ổn định"| ALERT
+    S2 -->|"Spike: R mới > k × R trước và > M"| ALERT
+    S1 -->|"Request count + version sau ack cảnh báo"| JCOUNTS
+    S2 -->|"Pickup / dropoff / completed trip + version riêng"| JCOUNTS
+    JCOUNTS -->|"Ghi cột riêng của từng writer"| STREAMVIEW
+    S2 -->|"Upsert tổng phút + version; retry không cộng trùng"| MINUTES
+    S2 -->|"Cập nhật cửa sổ 60 phút"| LIVE
+    S3 -->|"Ghi request / ghép / trip / outbox / lịch; cập nhật vòng đời"| OPS
+    USER -->|"Quyết định người dùng / bằng chứng đồng ý"| S3
+    S3 -->|"Phản hồi trạng thái / version / trip"| USER
+    OPS -.->|"Kết quả tra ứng viên / consent / trạng thái / hạn"| S3
+    BATCHVIEW -.->|"Baseline / gradient đọc từ kho"| S1
+    STREAMVIEW -.->|"Snapshot / tiến độ phục hồi"| S1
+    MINUTES -.->|"Lịch sử dựng lại view theo as_of"| LIVE
+    LOOKUP -.->|"Danh mục zone được tra cứu"| S2
+    OPS -.->|"Outbox đã commit được đọc / claim"| PICKUP
+    OPS -.->|"Lịch được đọc / claim sau pickup ack"| DROPOFF
+    KAFKA -->|"Broker ack pickup"| PICKUP
+    KAFKA -->|"Broker ack dropoff"| DROPOFF
+    PICKUP -->|"Ack pickup theo event_id"| JACK
+    DROPOFF -->|"Ack dropoff theo event_id"| JACK
+    JACK -->|"Ghi xác nhận gửi sau broker ack"| OPS
+    OPS -->|"Journal chuyển trạng thái cần archive"| ARCHIVE
+    ARCHIVE -->|"Ghi receipt sau khi HDFS bền vững"| RECEIPTS
+    RECEIPTS -->|"Archive committed / dedup để kiểm tra"| RETENTION
+    RETENTION -->|"Chỉ dọn chi tiết đã kết thúc và đủ điều kiện"| OPS
+    BATCHVIEW -->|"Thống kê / trung bình ngày"| DASH
+    MINUTES -->|"Lịch sử phút / rolling 60 phút"| DASH
+    LIVE -->|"View hiện tại từ stream"| DASH
+    BATCHVIEW -->|"Batch đã công bố"| AUDIT
+    STREAMVIEW -->|"Stream cùng khung đã chốt"| AUDIT
+    EVENTS -->|"Snapshot / coverage / cutoff đối chứng"| AUDIT
+    RECEIPTS -->|"Xác nhận archive committed"| AUDIT
+
+    classDef source fill:#eef2ff,stroke:#6366f1,color:#ffffff,fill-opacity:0.1
+    classDef ingest fill:#ecfeff,stroke:#0891b2,color:#ffffff,fill-opacity:0.1
+    classDef batch fill:#15803d,stroke:#15803d,color:#ffffff,fill-opacity:0.22
+    classDef stream fill:#facc15,stroke:#facc15,color:#ffffff,fill-opacity:0.12
+    classDef warehouse fill:#faf5ff,stroke:#9333ea,color:#ffffff,fill-opacity:0.1
+    classDef external fill:#f8fafc,stroke:#64748b,color:#ffffff,fill-opacity:0.1
+    class NYC,ZONES source
+    class FETCH,STORE,REPLAY,KAFKA,PICKUP,DROPOFF,ARCHIVE,EVENTS ingest
+    class INPUT,B1,B2,B3,SUMMARY batch
+    class ROUTE,S1,S2,LIVE,S3 stream
+    class LOOKUP,BATCHVIEW,STREAMVIEW,MINUTES,OPS,RECEIPTS,RETENTION warehouse
+    class USER,ALERT,DASH,AUDIT external
+    style SOURCES fill:#f8faff,stroke:#6366f1,fill-opacity:0.1,color:#ffffff
+    style INGESTION fill:#f0fcff,stroke:#0891b2,stroke-width:2px,fill-opacity:0.1,color:#ffffff
+    style PROCESSING fill:#f2fcf5,stroke:#16a34a,stroke-width:2px,fill-opacity:0.1,color:#ffffff
+    style BATCH fill:#15803d,stroke:#15803d,stroke-width:2px,fill-opacity:0.14,color:#ffffff
+    style STREAM fill:#facc15,stroke:#facc15,stroke-width:2px,fill-opacity:0.07,color:#ffffff
+    style WAREHOUSE fill:#fcf7ff,stroke:#9333ea,stroke-width:2px,fill-opacity:0.1,color:#ffffff
+    classDef junctionIngest fill:#0891b2,stroke:#0891b2,color:#ffffff
+    classDef junctionStream fill:#facc15,stroke:#facc15,color:#ffffff
+    class JACK junctionIngest
+    class JCOUNTS junctionStream
+
+    linkStyle 0,1 stroke:#6366f1,stroke-width:2px,color:#ffffff
+    linkStyle 2,3,4,5,6,7,8,9,10,11,12,41,42,43,44,45,47,55 stroke:#0891b2,stroke-width:2px,color:#ffffff
+    linkStyle 13,14,15,16,17,18,19,20 stroke:#15803d,stroke-width:2px,color:#ffffff
+    linkStyle 21,22,23,24,25,26,27,28,29,30,31,33,52 stroke:#facc15,stroke-width:2px,color:#ffffff
+    linkStyle 32 stroke:#64748b,stroke-width:2px,color:#ffffff
+    linkStyle 34,35,36,37,38,39,40 stroke:#f59e0b,stroke-width:2px,color:#ffffff,stroke-dasharray:6 4
+    linkStyle 46,48,49,50,51,53,54,56 stroke:#9333ea,stroke-width:2px,color:#ffffff
 ```
 
-| Phần | Phụ trách | Kết quả cần bàn giao |
-| --- | --- | --- |
-| 1. Data Ingestion | Chính | Nguồn/provenance/Parquet/manifest trên HDFS, replay từ HDFS qua Kafka |
-| 2. Data Processing | Mạnh | Mức lịch sử từ batch và số chuyến từ stream |
-| 3. Data Warehouse | Bảo | Các bảng PostgreSQL, cách nạp và truy vấn demo |
-| 4. Kiểm tra toàn tuyến | Nhóm trưởng cùng ba thành viên | Bộ mẫu chung, kết quả đối chiếu và hướng dẫn chạy |
+**Quy ước mũi tên:** nét liền đi từ bên phát dữ liệu, sự kiện, lệnh ghi hoặc xác nhận tới bên nhận. **Nét đứt cam là luồng đọc ngược: dữ liệu từ warehouse quay về ingestion/pipeline sử dụng dữ liệu đó**, không phải chiều gửi câu lệnh truy vấn. Publisher/simulator và pipeline vẫn là bên chủ động đọc/claim; kho không tự đẩy dữ liệu. Nhãn trên đường cam nêu dữ liệu đọc được.
 
-## 1. Data Ingestion — Chính
+**Màu sơ đồ:** ingestion xanh lam, pipeline gồm batch xanh lá đậm `#15803d`, stream vàng `#facc15`, warehouse tím; nét liền mang màu nhóm phát. Nguồn và giao diện ngoài có màu riêng. Nền nhãn trong suốt, chữ trắng.
 
-**Mục tiêu giai đoạn.** Đưa dữ liệu TLC vào HDFS dùng chung bằng DuckDB và bộ xuất bản HDFS để hai nhánh xử lý dùng được. Chính lấy đúng các khoảng nhóm chốt, ghi thông tin nguồn để đối chiếu, tạo Parquet và manifest. Với tập replay, Chính đọc Parquet từ HDFS rồi phát sự kiện pickup qua Kafka cho Mạnh đọc dần.
+**Gom đường vào warehouse:** Stream 1 và Stream 2 gom tại chấm vàng trong pipeline rồi vào stream view bằng một đường; pickup và dropoff gom ack tại chấm xanh lam trong ingestion rồi vào dữ liệu điều phối bằng một đường. Các chấm chỉ gom đường vẽ, không tạo queue/job, không cộng số đếm hay gộp transaction. Các writer vẫn giữ cột/version riêng; ack vẫn theo từng event_id. Không gom các đường có đích khác nhau hoặc gom đường đọc cam với đường ghi.
 
-### 1.1. Dùng DuckDB lấy trực tiếp Parquet TLC
+Ba batch bàn giao riêng cho bộ tổng hợp, chỉ công bố sau khi đủ cả ba. Dashboard và đối soát giữ các đầu vào riêng để thể hiện nguồn. Receipt → retention là dữ liệu nội bộ warehouse nên dùng nét liền tím, không dùng đường đọc ngược cam.
 
-- **Mục đích.** Thay việc gọi API đang lỗi bằng đọc file tháng từ nguồn TLC chính thức.
-- **Đầu vào.** URL HTTPS Parquet Yellow Taxi theo tháng, trường `tpep_pickup_datetime` và `PULocationID`; hai khoảng không giao nhau cho `history` và `replay`, do nhóm trưởng chốt. Không cần app token.
-- **Việc cần làm.** DuckDB đọc các tháng giao với kỳ, lọc pickup theo `[bắt đầu,kết thúc)`, chọn cột cần thiết và COPY trực tiếp ra Parquet với giới hạn bộ nhớ/đĩa tạm. Ghi số file, số dòng và lỗi; chỉ hoàn tất khi đọc được mọi file cần thiết. Kiểm thử cả dữ liệu lớn thực và chạy lặp lại.
-- **Đầu ra.** Hai tập Parquet, danh sách file nguồn/bộ lọc, số liệu đối chiếu và trạng thái để bàn giao bước 1.2.
+Vòng đời phát sự kiện: điều phối commit trip/outbox/lịch → publisher đọc/claim outbox → phát pickup vào Kafka → Kafka ack → publisher ghi ack vào kho → simulator mới được phát dropoff đến hạn. Ack gửi không đồng nghĩa hoàn tất chuyến: dropoff phải qua Kafka → router → Stream 3 để cập nhật thành viên/trip trong kho. Retention đọc receipt và chỉ dọn khi thỏa toàn bộ điều kiện; bảng receipt không tự thực hiện thao tác dọn. Batch đối chứng đọc HDFS sự kiện thực tế độc lập, không dùng số đếm stream làm đáp án.
 
-[Nguồn TLC chính thức](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) · [DuckDB đọc Parquet](https://duckdb.org/docs/stable/data/parquet/overview).
+Ba batch không bắt buộc chạy nối tiếp nhau. Mỗi nhánh có thể tính số đếm trung gian, nhưng **bước tổng hợp/công bố số liệu cuối đặt sau cả ba nhánh**. Bộ tổng hợp đọc sự kiện/đầu vào trung gian của batch để ra số đếm; không suy ngược số đếm từ baseline hay gradient, không sao chép số đếm stream để tự đối soát với chính nó.
 
-### 1.2. Lưu nguồn, provenance, Parquet và manifest trên HDFS
+## 2. Ingestion và vòng đời sự kiện — Chính
 
-- **Mục đích.** Bàn giao dữ liệu trên hệ phân tán để các thành viên đọc từ môi trường của mình; lưu trước, phát lại sau.
-- **Đầu vào.** Parquet tháng TLC đã tải/cache, CSV Taxi Zone Lookup, hai kỳ đã chốt và thư mục gốc HDFS chung.
-- **Việc cần làm.** Lưu Parquet nguồn nguyên bản trên HDFS trước khi xử lý. DuckDB tạo Parquet riêng history/replay; công bố hai file, CSV lookup và provenance `source.json` trên HDFS. Manifest ghi URI HDFS, vai trò, phạm vi, số dòng và checksum. Chỉ ghi `ready` khi mọi file đã hoàn tất, kiểm tra nội dung và số bản sao; không công bố file đang upload.
-- **Đầu ra.** URI manifest HDFS; `parquet_path` HDFS đưa history sang 2.2 và replay sang 1.3. `raw_path` trỏ đến provenance hoặc CSV lookup trên HDFS; manifest/provenance có URI và checksum các Parquet nguồn thật. Bảo nhận CSV qua `zone_lookup`. JSON API mẫu cũ giữ để kiểm thử local; bộ mẫu HDFS dùng Parquet cùng hợp đồng dữ liệu. Nguồn TLC hiện tại là Parquet nên không tạo JSON chuyến giả.
+### Nguồn và replay
 
-### 1.3. Đọc lại chuyến đi và tạo sự kiện đón khách
+history kết thúc trước hoặc tại đầu replay, hai phạm vi không chồng nhau. Lấy đủ pickup/dropoff, mã vùng, định danh dòng; lưu raw, Parquet, lookup và ranh giới vùng trên HDFS rồi mới công bố manifest ready. Phân trang ổn định, retry có giới hạn; tải thiếu không ready. CSV tên vùng không thay được polygon: nếu sinh tọa độ, dùng seed ổn định theo dòng nguồn và điểm nằm trong vùng, ghi rõ mô phỏng.
 
-- **Mục đích.** Mô phỏng một nguồn gửi sự kiện theo thời gian để Spark có dữ liệu đến dần.
-- **Đầu vào.** URI HDFS và phạm vi `replay` từ manifest HDFS ở bước 1.2, mã phiên phát lại và cấu hình tốc độ phát.
-- **Việc cần làm.** Viết chương trình Python đọc các dòng theo thời điểm đón khách và gửi dần sang Kafka. Mỗi dòng trong bộ mẫu có một `event_id` ổn định khi gửi lại. Chỉ đưa vào sự kiện các thông tin đã biết lúc đón khách.
-- **Đầu ra.** Các sự kiện JSON gửi đến bước 1.4. Mỗi sự kiện có `replay_id` (mã phiên), `event_id` (mã sự kiện), `pickup_at` (thời điểm đón), `pickup_zone_id` (mã vùng đón) và `source_file` (file Parquet replay để đối chiếu qua manifest).
+HDFS không tự đẩy dữ liệu: replay đọc từng trip để tạo một yêu cầu mô phỏng. Giữ điểm đến và thời lượng nguồn; không phát pickup/dropoff chỉ vì đã đọc được trip NYC. Trip đã xảy ra trong NYC là nguồn mô phỏng nhu cầu, không phải trip điều phối mới.
 
-### 1.4. Đưa sự kiện vào Kafka topic `taxi-events`
+### Ba sự kiện
 
-- **Mục đích.** Đệm sự kiện để chương trình phát lại và Spark có thể chạy theo tốc độ riêng.
-- **Đầu vào.** Các sự kiện JSON do chương trình Python ở bước 1.3 gửi đến.
-- **Việc cần làm.** Cấu hình Kafka và topic `taxi-events`. Phát một nhóm sự kiện mẫu và kiểm tra bên đọc thấy được đúng trường và đúng mã sự kiện.
-- **Đầu ra.** Topic có dữ liệu để Spark đọc ở bước 2.3. Kafka giữ các sự kiện đã nhận, còn phép đếm chuyến được thực hiện ở Spark.
+- `ride_requested`: một request, thời gian đặt và zone đón; dùng cho baseline, gradient và spike.
+- `pickup_completed`: một trip bắt đầu phục vụ, gồm các request thành viên; zone đón đầu tiên, picked_up_at. Ghép hai request vẫn chỉ phát một lượt đón.
+- `dropoff_completed`: trả xong một request thuộc trip, tại zone trả và completed_at. Ghép hai người có hai sự kiện trả; trip hoàn tất khi người cuối được trả.
 
-## 2. Data Processing — Mạnh
+Sau chốt trip, ghi pickup outbox trong cùng transaction rồi publisher phát ngay; không chờ thêm thời gian xe đến trong demo. Đã có đồng ý từ phía người dùng, không dựng thêm bước xin lại đồng ý trong nhánh điều phối. Lịch trả từng người lấy trip_started_at + source_duration_seconds của người đó; không lập lịch âm, không tự hoàn tất request đang chờ/hủy. Đây là mô phỏng, chưa tính đường đi vòng.
 
-**Mục tiêu giai đoạn.** Chuyển các bản ghi chuyến đi thành hai bộ số liệu có thể so sánh. Mạnh dùng Spark Batch để tính mức lịch sử và Spark Structured Streaming để đếm số chuyến vừa phát lại. Hai nhánh cùng dùng giờ New York, cùng quy tắc chọn chuyến hợp lệ và cùng cửa sổ 15 phút để Bảo ghép đúng các kết quả tương ứng.
+Kafka fan-out cho stream và archive; archive giữ cả ba loại sự kiện cùng thông tin topic/partition/offset. Journal quyết định ghép/gia hạn/từ chối cũng cần lưu. Chỉ receipt committed sau ghi HDFS bền vững; raw có thể trùng, xử lý phải khử trùng. Clock mô phỏng dùng chung và vẫn tiến khi không có request mới; dùng 1× khi tương tác thủ công.
 
-### 2.1. Thống nhất quy tắc thời gian và dữ liệu
+## 3. Processing — Mạnh
 
-- **Mục đích.** Để số chuyến trong hai nhánh được tính theo cùng cách.
-- **Đầu vào.** Schema Parquet, JSON sự kiện mẫu và khoảng thời gian từ Chính. Đối chiếu ánh xạ từ các cột TLC `tpep_pickup_datetime` và `PULocationID` (giá trị raw xuất thành `pulocationid`) sang thời điểm đón và mã vùng chuẩn.
-- **Việc cần làm.** Chuẩn hóa thời điểm đón và mã khu vực. Dùng giờ New York (`America/New_York`) để xác định thứ và khung 15 phút. Dùng timestamp có múi giờ khi gửi hoặc lưu. Quy ước cửa sổ gồm mốc bắt đầu và loại mốc kết thúc, nên chuyến đúng 08:15 thuộc khung 08:15–08:30. Ghi nhận và loại khỏi phép đếm bản ghi thiếu thời điểm đón hoặc có mã vùng sai định dạng.
-- **Đầu ra.** Bộ quy tắc và cách ghi số liệu kiểm tra chất lượng dùng chung cho 2.2 và 2.3. Nhịp đọc dữ liệu của Spark được cấu hình riêng với độ dài cửa sổ 15 phút.
+### Quy tắc chung
 
-### 2.2. Tính mức lịch sử bằng Spark Batch
+Event time có múi giờ, ngày nghiệp vụ America/New_York, cửa sổ [start,end). Dùng cửa sổ cố định 15 phút cho đối soát, khoảng 15 giây không chồng nhau cho spike và bucket phút cho dashboard. Nhịp xử lý near real-time 15 giây không đồng nghĩa batch chạy 15 giây. Request hợp lệ về thời gian/vùng vẫn được đếm nếu tọa độ/thời lượng ghép lỗi.
 
-- **Mục đích.** Trả lời “Khu vực này thường có bao nhiêu chuyến vào thứ và khung giờ đang xét?”
-- **Đầu vào.** File `history` đã sẵn sàng tại `parquet_path` HDFS, phạm vi trong manifest HDFS và quy tắc từ 2.1.
-- **Việc cần làm.** Đếm chuyến theo từng khu vực và từng cửa sổ lịch sử. Sau đó lấy trung bình các cửa sổ có cùng thứ và khung giờ, ví dụ các thứ Hai từ 08:00 đến 08:15. Chỉ dùng các cửa sổ có độ phủ đã xác nhận, tính cả cửa sổ thực sự có 0 chuyến.
-- **Đầu ra.** Một dòng cho mỗi khu vực, thứ và khung giờ, gồm `pickup_zone_id`, `iso_weekday`, `slot_15m`, `baseline_trip_count` và `reference_windows` (số cửa sổ dùng để tính). Bàn giao kèm phạm vi lịch sử cho bước 3.2.
+Khử trùng theo event và khóa nghiệp vụ trong [contracts](contracts.md). Chốt sau watermark và xác nhận đủ độ phủ; khung không sự kiện chỉ là 0 khi đủ dữ liệu. Dữ liệu sau chốt ghi cách ly; không âm thầm sửa batch hoặc stream khác chính sách. Restart giữ checkpoint/dedup, baseline snapshot và tiến độ công bố; tách scope/phiên, không cộng lại history qua replay.
 
-### 2.3. Đếm chuyến phát lại bằng Spark Structured Streaming
+### Batch 1 — Hai baseline nhu cầu
 
-- **Mục đích.** Cập nhật số chuyến của từng khu vực trong mỗi cửa sổ khi có sự kiện mới.
-- **Đầu vào.** Topic `taxi-events` ở bước 1.4 và quy tắc từ 2.1.
-- **Việc cần làm.** Đọc JSON, kiểm tra trường bắt buộc và loại lần gửi lại theo cặp `replay_id` và `event_id`. Phân cửa sổ theo giờ đón khách ghi trong sự kiện. Lưu checkpoint theo phiên để hỗ trợ đọc tiếp khi khởi động lại. Ghi số bản ghi hợp lệ, lỗi và sự kiện gửi trùng được phát hiện.
-- **Đầu ra.** Số chuyến lũy kế của từng cửa sổ trong phiên, gồm `replay_id`, `pickup_zone_id`, `window_start`, `window_end` và `trip_count`. Ví dụ, khi cửa sổ tăng từ 2 lên 3 chuyến, gửi tổng mới là 3 cho bước 3.2.
+Từ history khởi tạo và lịch sử sự kiện đã đủ dữ liệu, lấy số request theo zone–slot. all_days chọn các ngày trước; same_weekday chọn cùng thứ các tuần trước. Chỉ ngày trước ngày áp dụng, không lấy ngày đang xét/tương lai. Mỗi mức = tổng request / số cửa sổ tham chiếu, tính cả khung 0 đủ độ phủ; thiếu mẫu là NULL. Chốt cửa sổ không tự cập nhật baseline bằng SQL.
 
-## 3. Data Warehouse và truy vấn — Bảo
+Ghi kết quả staging kèm scope, loại, slot/thứ, số mẫu, kỳ lịch sử, applies_on, cutoff, batch_version; bộ tổng hợp cuối công bố cặp nguyên tử. Stream mở cửa sổ mới chọn phiên bản phù hợp thời gian mô phỏng.
 
-**Mục tiêu giai đoạn.** Biến kết quả của hai nhánh thành câu trả lời có thể xem bằng SQL. Bảo dựng ba bảng, nạp tên vùng, mức lịch sử và số đếm từ stream. Khi người dùng chọn một phiên và một cửa sổ, truy vấn ghép đúng vùng và khung giờ để hiển thị số chuyến, mức lịch sử và phần trăm chênh lệch.
+### Batch 2 — Gradient nhu cầu trong ngày
 
-### 3.1. Tạo các bảng PostgreSQL
+Dùng K khung 15 phút liên tiếp đã chốt, đủ độ phủ, **trong cùng ngày hiện tại** tại mỗi zone; K mặc định 4, tối thiểu 2. Với số request C_i: g_i = (C_i − C_(i−1)) / 15, đơn vị yêu cầu/phút. K khung cho K−1 gradient, không thay bằng đầu–cuối/hồi quy. Không nối qua khung thiếu hoặc qua ngày trước. Đầu ngày chưa đủ K thì trả trạng thái thiếu; khung 0 đủ độ phủ vẫn hợp lệ. Gradient cung cấp ngữ cảnh cho Stream 1, không tự là điều kiện phát cảnh báo.
 
-- **Mục đích.** Xác định nơi lưu bảng tra cứu và hai loại kết quả xử lý.
-- **Đầu vào.** Cấu trúc Zone Lookup ở 1.2 và các cột đầu ra đã thống nhất với Mạnh ở 2.2 và 2.3.
-- **Việc cần làm.** Tạo bảng khu vực theo mã vùng, bảng mức lịch sử theo vùng–thứ–khung giờ và bảng số chuyến phát lại theo phiên–vùng–mốc đầu cửa sổ. Dùng bộ khóa tương ứng để mỗi kết quả chỉ có một dòng.
-- **Đầu ra.** SQL khởi tạo ba bảng và mô tả các cột, kiểu dữ liệu, khóa để Mạnh và Bảo thống nhất cách nạp.
+### Batch 3 — Trung bình lưu lượng đón trong ngày
 
-### 3.2. Nạp dữ liệu và cập nhật kết quả
+P(z,d,w) là số trip đón tại zone z trong khung w của ngày hiện tại d. A gồm các khung từ đầu ngày đến cutoff đã chốt, đủ dữ liệu và P > 0.
 
-- **Mục đích.** Đưa đầu ra của hai nhánh vào kho để SQL có thể truy vấn.
-- **Đầu vào.** Các bảng ở 3.1, Zone Lookup ở 1.2, mức lịch sử ở 2.2 và số đếm cửa sổ ở 2.3.
-- **Việc cần làm.** Nạp lookup từ URI HDFS và mức lịch sử. Nếu dùng `psql \copy`, tải CSV từ HDFS về file tạm trên máy chạy `psql` trước khi nạp. Khi nhận tổng mới từ stream, cập nhật dòng theo khóa phiên–vùng–cửa sổ. Kiểm tra nạp lại cùng một đầu ra để xác nhận số dòng và số chuyến giữ nguyên.
-- **Đầu ra.** Ba bảng có dữ liệu trong PostgreSQL, sẵn sàng cho bước 3.3.
+**daily_pickup_average = sum(P trong A) / count(A)**
 
-### 3.3. Truy vấn kết quả demo
+Ví dụ 2, 0, 6, 4 → (2+6+4)/3 = 4 trip/khung có hoạt động. Không tính trung bình cùng slot qua nhiều ngày. Mỗi zone–ngày có một mức hiện tại, được tính lại mỗi 15 phút; lưu phiên bản/cutoff để nhìn lại tiến trình ngày. Không có khung dương thì NULL, active_window_count=0; ngày chưa kết thúc là tạm tính. Chỉ phục vụ dashboard, không thêm điều kiện cảnh báo. Giữ tổng trip và mẫu số để không nhầm trung bình có điều kiện với tổng lưu lượng.
 
-- **Mục đích.** Cho biết số chuyến trong cửa sổ vừa phát lại chênh lệch thế nào so với mức lịch sử tương ứng.
-- **Đầu vào.** Mã phiên replay, cửa sổ muốn xem và ba bảng từ 3.2.
-- **Việc cần làm.** Ghép theo mã vùng, thứ và khung giờ New York. Tính tỷ lệ theo công thức `(số chuyến phát lại − mức lịch sử) / mức lịch sử × 100%`. Nếu thiếu mức lịch sử hoặc mức lịch sử bằng 0, vẫn hiện số chuyến và ghi lý do để trống tỷ lệ. Nếu lookup thiếu tên, vẫn hiện mã vùng.
-- **Đầu ra.** Câu SQL có thể chạy lại và bảng kết quả gồm mã/tên vùng, số chuyến phát lại, mức lịch sử, số cửa sổ tham chiếu và tỷ lệ chênh lệch.
+### Tổng hợp cuối sau ba batch
 
-## 4. Kiểm tra toàn tuyến — Cả nhóm
+Mỗi run đóng băng input snapshot, cutoff, archive offsets và tập cửa sổ đủ độ phủ. Chờ ba nhánh hoàn tất (kết quả thiếu dữ liệu hợp lệ khác lỗi job), sau đó tổng hợp số request, trip đón, khách trả, trip hoàn tất theo zone–khung 15 phút, ghép metadata của các kết quả, ghi staging và công bố batch view trong transaction. Một nhánh lỗi thì không công bố run hoàn chỉnh. Retry cùng run không cộng lại số liệu. Ba thống kê vẫn có bảng/grain riêng, không ép baseline và trung bình ngày thành số liệu có cùng grain với window.
 
-### 4.1. Chạy trên bộ mẫu có kết quả biết trước
+Batch định kỳ đối soát đọc HDFS sự kiện thực tế; không lấy trip NYC gốc để đếm trip sau ghép. Trip hoàn tất được suy từ đủ dropoff của danh sách thành viên pickup, cần cả trạng thái/sự kiện trước cửa sổ hiện tại nếu trip đi qua nhiều cửa sổ.
 
-- **Mục đích.** Kiểm tra từng điểm bàn giao và kết quả cuối trước khi chạy trên mẫu TLC thật.
-- **Đầu vào.** Các trang JSON mẫu theo schema API và CSV lookup có một vùng A. Hai cửa sổ lịch sử 08:00–08:15 vào hai thứ Hai trước kỳ replay có lần lượt 1 và 3 chuyến. Vào thứ Hai của kỳ replay có các chuyến lúc 08:01, 08:05, 08:14 và 08:15. Ca gửi trùng phát lại một sự kiện với cùng mã.
-- **Việc cần làm.** Chuẩn bị HDFS dùng chung, Kafka và các bảng PostgreSQL. Nhập bộ mẫu và công bố Parquet/CSV/manifest trên HDFS; kiểm tra Spark Batch/Python đọc được URI bàn giao, chạy batch, khởi động stream rồi phát sự kiện. Cuối cùng chạy SQL với mã phiên và cửa sổ muốn xem.
-- **Đầu ra.** Mức lịch sử là **2 chuyến** trên hai cửa sổ. Stream ghi **3 chuyến** trong khung 08:00–08:15 và **1 chuyến** trong khung 08:15–08:30. SQL cho vùng A ở khung đầu trả **3 chuyến**, mức lịch sử **2**, chênh lệch **+50%**.
+### Stream 1 — Cảnh báo baseline
 
-### 4.2. Chạy lại với dữ liệu TLC qua DuckDB và bàn giao
+Đếm request trong khung 15 phút. Khi mở khung giữ bền vững cặp baseline; vượt khi prev_count <= baseline < current_count. Hai mức vượt cùng lần xử lý gộp một thông điệp, mỗi điều kiện có ID ổn định. Baseline 0 kích hoạt request đầu, thiếu một mức vẫn xét mức kia. Gắn gradient đã công bố với series_end không sau thời điểm dữ liệu xử lý. Kafka ack trước ghi request_count vượt ngưỡng tương ứng vào stream view 15 phút; retry cùng ID/tổng. Snapshot baseline không đổi giữa khung dù batch công bố mới.
 
-- **Mục đích.** Xác nhận hệ thống có thể nhận dữ liệu nguồn đã chọn và tạo bảng phân tích.
-- **Đầu vào.** Pipeline đã qua 4.1, cấu hình DuckDB/TLC, lookup và phạm vi lịch sử/replay do nhóm trưởng chốt.
-- **Việc cần làm.** Chạy toàn tuyến với dữ liệu đã chốt. Mỗi người ghi lệnh chạy, đường dẫn mã, đầu vào, đầu ra thực tế và phần còn vướng. Ba thành viên có thể làm song song từ bộ mẫu 4.1 sau khi thống nhất schema file, JSON và bảng kết quả.
-- **Đầu ra.** Một lượt chạy có thể lặp lại, ghi rõ file tháng/nguồn TLC, bộ lọc SQL, kỳ lịch sử, kỳ replay và kết quả SQL. Ghi riêng kết quả fixture, ingestion dữ liệu lớn và nghiệm thu toàn tuyến.
+### Stream 2 — Lưu lượng 60 phút và spike 15 giây
 
-Tài liệu tham khảo cho dữ liệu nguồn, bộ mẫu và báo cáo bàn giao. [NYC TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) · [Đặc tả bộ mẫu](../../data/fixtures/README.md) · [Báo cáo MVP](../mvp-report.md).
+Số request mới R(t) trong [t−15s,t) so với R(t−15s) trong [t−30s,t−15s). Cảnh báo khi **R(t) > k × R(t−15s) và R(t) > M**, k>1, M>=0. Khoảng trước 0: phát nếu hiện tại >M, lý do tăng từ 0, tỷ lệ NULL. Khoảng trước thiếu dữ liệu thì không giả 0. Chỉ một cảnh báo nghiệp vụ theo phiên–zone–khoảng; retry cùng alert_id. Dữ liệu muộn trong giới hạn giữ các bucket mở để kiểm tra lại, chỉ phát nếu bucket chưa có cảnh báo và đủ dữ liệu; không thu hồi cảnh báo đã gửi, lưu count/cutoff tại lúc phát. Sau chốt cách ly theo chính sách chung.
+
+Mỗi lần xử lý có thể upsert cùng bản ghi `(replay_id, zone_id, minute_start)` theo **event time**, cập nhật tổng phát sinh của phút. Ví dụ các delta 2,1,3,2 cho tổng 2→3→6→8; bốn lần ghi không tạo bốn snapshot cùng phút. Dùng tổng tuyệt đối và update_version để retry/stale write không cộng trùng hoặc làm tổng lùi. Cảnh báo vẫn dùng bucket 15 giây, không dùng tổng phút tăng dần. Bucket phút giữ riêng request_count, pickup_trip_count, dropoff_request_count, completed_trip_count; số liệu phút được phép ghi độc lập, quy tắc ack của Stream 1 áp dụng request_count 15 phút tương ứng.
+
+Serving view đón khách giữ 60 phút gần nhất; tại mốc phút t: V(z,t) = tổng pickup_trip_count trong [t−60 phút,t). Lấy tổng phút mới, loại phút rời cửa sổ; không cộng các tổng rolling lại với nhau. Phút đang mở hiển thị tạm tính riêng; dashboard 60 phút chốt theo mốc phút để không đòi chia một bucket ở biên. Lúc 09:01 xuất view [08:01,09:01). Bao gồm mọi zone trong lookup và zone hợp lệ quan sát được chưa có tên; zero chỉ khi đủ coverage.
+
+**PostgreSQL giữ toàn bộ bản ghi phút, không xóa sau 60 phút.** Chỉ state/serving view giới hạn 60 phút, cộng vùng đệm watermark khi triển khai. Không bắt buộc bảng snapshot rolling thứ hai: dashboard truy vấn lịch sử bucket phút để dựng tổng 60 phút. Dữ liệu đến muộn trước chốt cập nhật đúng bucket cũ và view liên quan; version/finality cho biết bản ghi tạm hay cuối.
+
+### Stream 3 — Ghép và điều phối
+
+Cache lưu request đang chờ; cache phục vụ tìm nhanh, PostgreSQL là nơi xác nhận trạng thái bền vững. Hai request cùng phiên, cả hai khoảng cách đón/đến <=500m; geography mét, không dùng zone làm điều kiện. Thứ tự ổn định: người chờ lâu nhất, khoảng cách đón, đến, requested_at rồi ID. Cặp đã có đồng ý hợp lệ từ phía người dùng: kiểm tra bằng chứng/version/hạn rồi chốt ngay, không xin lại đồng ý. Dưới khóa tạo trip, thành viên, pickup outbox và lịch dropoff trong một transaction. Trip ghép có một pickup, hai dropoff; đi riêng một pickup, một dropoff. Không chỉ dựa cache để phát pickup.
+
+Hạn riêng ban đầu 3 phút; đề xuất không reset. Hết hạn chờ gia hạn, không tự tạo trip riêng; người còn hạn tiếp tục tìm. Thời lượng gia hạn cấu hình, số lần không giới hạn. Từ chối chủ động lưu cặp không thứ tự, không đề xuất lại trong phiên; hết hạn không được coi là từ chối. API quản trị/client tiếp nhận quyết định đã có từ phía người dùng, không triển khai giao diện thương mại trong phạm vi này. Dropoff cập nhật từng người, đủ cả hai mới hoàn tất trip; không tăng lại nhu cầu.
+
+## 4. Kho, đối soát và cấu hình — Bảo phối hợp cả nhóm
+
+### Bảng và công bố
+
+Bảng nguồn/sự kiện, grain, khóa và repository tại [contracts](contracts.md). batch_window_counts và stream_window_counts lưu riêng; tuyệt đối không cộng hai view. stream_minute_counts là lịch sử phút của dashboard. Các baseline, gradient và daily_pickup_averages có phiên bản; batch_runs quản lý trạng thái công bố toàn run. Stream ghi số đếm đang mở không làm baseline đổi ngay.
+
+Chỉ dọn dữ liệu vận hành kết thúc sau khi tổng hợp bền vững, raw/journal đã có receipt HDFS, lịch đã xử lý và dedup còn bảo vệ retry. Không dọn request chờ/gia hạn; không áp dụng retention vận hành lên lịch sử dashboard phút hoặc batch/stream view trong phạm vi hiện tại. Không tăng biến số xe rảnh khi trả khách.
+
+### Đối soát số đếm
+
+So cùng scope/replay, zone, window_start/end và tập sự kiện đủ độ phủ. Batch chờ archive đã commit, stream đã xử lý cùng phạm vi offset và cửa sổ đã chốt; scheduler tới phút 15 không tự chứng minh đã đủ dữ liệu. Cửa sổ chưa đủ là pending, không mismatch. Event muộn sau chốt được loại/cách ly thống nhất hai phía theo chính sách event-time/watermark và metadata admission lưu trong snapshot để batch tái lập; không lấy số đếm stream làm đầu vào đối chứng. View 60 phút chỉ so với batch đếm đúng 60 phút tại cùng as_of.
+
+Ví dụ zone A, 08:00–08:15: năm request A–E; A–B ghép, C–E chốt riêng; tất cả đón và trả trong cửa sổ. Batch và stream đều phải ra **5 request, 4 trip đón, 5 khách trả, 4 trip hoàn tất, 1 trip ghép**. Khi trả khác zone phải đối soát mỗi zone theo loại đại lượng, không gán tất cả về zone đón. Hai view bằng nhau xác nhận phép đếm nhất quán, chưa thay kiểm tra ghép/cảnh báo.
+
+### 4.1–4.2. Kiểm thử và tích hợp do cả nhóm thực hiện
+
+Khởi tạo baseline từ history trước, sau đó replay và chạy ba stream, archive, publisher và simulator. Batch định kỳ đọc sự kiện archive độc lập, chạy ba phép tính rồi tổng hợp/công bố cuối. Các nhánh cùng dùng clock và scope. Fixture/test/báo cáo hiện có là tài liệu cũ cần cả nhóm tự cập nhật; chưa sửa hoặc chạy nghiệm thu toàn tuyến ở lần cập nhật docs này.
+
+### 4.3. Cấu hình
+
+| Tham số | Quy tắc |
+| --- | --- |
+| business_timezone | America/New_York; DST theo chính sách nguồn rõ ràng |
+| batch_interval / business_window | 15 phút |
+| stream_trigger / spike_interval | 15 giây; thời gian xử lý có thể làm kết quả đến trễ |
+| minute_bucket | 1 phút, upsert theo event time |
+| serving_horizon | 60 phút; PostgreSQL giữ toàn bộ lịch sử phút |
+| trend_window_count | K mặc định 4, >=2; không đi qua ngày trước |
+| spike_multiplier / spike_min_requests | k>1, M>=0; phải cấu hình trước chạy, không tự đặt ngưỡng |
+| baseline_history_range | Số ngày/tuần hoặc khoảng; không dùng ngày áp dụng/tương lai |
+| pickup/dropoff matching radius | Mỗi bán kính <=500m |
+| initial_wait / extension_duration | Ban đầu 3 phút; gia hạn cần cấu hình |
+| replay clock / seed | Clock chung; seed tọa độ ổn định |
+| watermark / retry horizon | Cấu hình; admission/coverage được ghi để đối soát |
+| operational retention | Chỉ dọn khi đủ điều kiện archive/dedup; loại trừ lịch sử phân tích |
+
+Khu vực triển khai: ingestion của Chính; pipeline của Mạnh; warehouse/SQL của Bảo; shared là hợp đồng chung. Scripts chỉ gọi module. Xem [bản đồ giao việc](README.md).

@@ -1,5 +1,6 @@
 """Configuration, atomic files and explicit source-time conversion for ingestion."""
 
+import hashlib
 import json
 import math
 import os
@@ -144,3 +145,20 @@ def load_config(path):
     if not math.isfinite(rate) or rate < 0:
         raise ValueError("replay.events_per_second must be finite and nonnegative")
     return config
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def json_bytes(value):
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False,
+                      separators=(",", ":")).encode("utf-8")
+
+
+def stable_id(*parts):
+    return hashlib.sha256(json_bytes(parts)).hexdigest()

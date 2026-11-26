@@ -1,64 +1,52 @@
-<!--
-Đầu vào
-Đề bài MVP, file TLC do nhóm chọn và kết quả bàn giao từ ba nhánh.
-Đầu ra
-Bản đồ repo, thứ tự tích hợp và tiêu chí nghiệm thu chung.
--->
 # NYC Taxi Pipeline
 
-MVP trả lời câu hỏi **Khu vực nào có nhiều chuyến đón khách hơn mức lịch sử trong cùng khung giờ?** Người xem chọn một phiên replay và một cửa sổ 15 phút, rồi đọc kết quả trên PostgreSQL.
+Workspace chia việc cho hệ thống nhu cầu đặt xe và ghép xe NYC: **ba batch** (hai baseline lịch sử, gradient trong ngày, trung bình lượt đón trong ngày) và **ba stream** (cảnh báo baseline, lưu lượng/spike, ghép/điều phối). Đơn vị nhu cầu là yêu cầu đặt xe; ghép hai yêu cầu vẫn tính hai yêu cầu.
 
-Cập nhật từ Minh (`origin/main`, commit `0d1b775`): dùng **HDFS chung** để lưu Parquet nguồn, Parquet history/replay, CSV lookup, provenance và manifest; Python replay phải đọc tập đã công bố trên HDFS trước khi gửi Kafka. Nguồn TLC/DuckDB và tỉ lệ 60/40 đã chốt được giữ.
+Bắt đầu từ [bản đồ giao việc](docs/guide/README.md), [sơ đồ tổng thể](docs/guide/giao-viec-demo-taxi.md) và [hợp đồng chung](docs/guide/contracts.md). Mã ingestion v2 và các lệnh chạy nằm trong [hướng dẫn bàn giao ingestion](docs/ingestion-v2.md). Pipeline và warehouse cần tích hợp để chạy MVP toàn tuyến.
 
-Đây là workspace giao việc. Các tệp Python, SQL và YAML chứa chú thích về người phụ trách, đầu vào, đầu ra và yêu cầu xử lý.
+Minh có thể chạy độc lập `python tests/standalone_ingestion.py` để kiểm tra trực tiếp đủ tháng của nguồn cloud năm 2025. Xem [báo cáo kiểm tra và hướng dẫn standalone](docs/bao-cao-ingestion-standalone.md).
 
-Nhánh `demo/ingestion` triển khai phần Chính (1.1–1.4): TLC Parquet → HDFS dùng chung → DuckDB → Parquet/manifest HDFS → replay → Kafka.
-Đã nghiệm thu xuất **48.722.567 dòng thật của 12 tháng 2025** và đối chiếu toàn bộ đầu ra; xem [số liệu, CI và giới hạn CDN](docs/duckdb-validation.md).
-Xem [cách cài, chạy bộ mẫu, cấu hình DuckDB/Kafka và hợp đồng bàn giao](docs/ingestion.md). Luồng tích hợp mới: [HDFS trước khi replay](docs/hdfs.md), cấu hình `configs/hdfs.example.yaml`. [HDFS/Kafka thật đã nghiệm thu với 1 triệu dòng tổng hợp và lỗi một DataNode](docs/hdfs-validation.md).
-Demo hiện tại chia khoảng **60/40 theo số dòng hợp lệ**: history 8.461, replay 5.651; dùng cache cho các lượt chạy lại. [Hướng dẫn giao việc ban đêm cho agent](docs/overnight-ingestion.md).
-Phần Spark và PostgreSQL vẫn theo phân công bên dưới, chờ tích hợp với Mạnh và Bảo.
+## Phân công và khu vực code
 
-Xem sơ đồ và yêu cầu đầu vào, đầu ra của từng bước trong [hướng dẫn triển khai pipeline taxi](docs/guide/giao-viec-demo-taxi.md).
+| Nhánh | Phụ trách | Guide | Code |
+| --- | --- | --- | --- |
+| Ingestion | Chính | [6 công việc](docs/guide/README.md#danh-mục) trong docs/guide/ingestion | [ingestion](src/nyc_taxi_pipeline/ingestion) |
+| Pipeline | Mạnh | [9 công việc](docs/guide/README.md#danh-mục) trong docs/guide/pipeline | [pipeline](src/nyc_taxi_pipeline/pipeline) |
+| Warehouse | Bảo | [7 công việc](docs/guide/README.md#danh-mục) trong docs/guide/warehouse | [warehouse](src/nyc_taxi_pipeline/warehouse) |
 
-## Mục tiêu từng giai đoạn
-
-1. **Data Ingestion · Chính.** Dùng DuckDB đọc Parquet tháng Yellow Taxi của TLC, lọc hai kỳ, lưu nguồn và Parquet/provenance/manifest trên HDFS. Đọc tập replay từ HDFS rồi phát qua Kafka để Spark có thể đọc dần.
-2. **Data Processing · Mạnh.** Tính mức lịch sử bằng Spark Batch và đếm số chuyến phát lại bằng Spark Structured Streaming. Dùng cùng quy tắc chọn chuyến hợp lệ và cửa sổ 15 phút để hai kết quả so sánh được.
-3. **Data Warehouse · Bảo.** Nạp tên vùng và hai bộ kết quả vào PostgreSQL. Cung cấp truy vấn để người xem chọn một phiên và một cửa sổ, rồi xem số chuyến, mức lịch sử và phần trăm chênh lệch theo khu vực.
+API/client có module và hợp đồng riêng; người triển khai do nhóm phân công. Shared chứa schema, quy tắc thời gian và đồng hồ dùng chung. SQL thuộc warehouse/sql; scripts chỉ làm điểm chạy gọi module.
 
 ## Bản đồ công việc theo bước
 
-| Bước | Phụ trách | File cần đọc hoặc triển khai | Bàn giao |
-| --- | --- | --- | --- |
-| **1.1** Lấy chuyến đi từ TLC qua DuckDB | Chính, nhóm trưởng chốt mẫu | [Cấu hình DuckDB/TLC](configs/demo.example.yaml) · [Tiếp nhận nguồn](src/nyc_taxi_pipeline/ingestion/tlc.py) | Parquet và thông tin file nguồn/bộ lọc cho hai kỳ `history` và `replay` |
-| **1.2** Lưu nguồn, provenance, Parquet và manifest trên HDFS | Chính | [Điểm chạy nhập](scripts/run_ingestion.py) · [Publisher HDFS](src/nyc_taxi_pipeline/ingestion/hdfs.py) · [Manifest](src/nyc_taxi_pipeline/ingestion/manifest.py) | URI manifest HDFS, `parquet_path` HDFS cho batch/replay, `raw_path` HDFS của lookup cho Bảo |
-| **1.3** Đọc chuyến đi và tạo sự kiện | Chính | [Điểm chạy replay](scripts/replay_taxi_stream.py) · [Chương trình replay](src/nyc_taxi_pipeline/ingestion/replay.py) | Sự kiện pickup có mã phiên, mã sự kiện, giờ đón, vùng đón và file Parquet replay |
-| **1.4** Đưa sự kiện vào Kafka | Chính, phối hợp nhóm trưởng | [Chương trình replay](src/nyc_taxi_pipeline/ingestion/replay.py) · [Kafka ingestion](docker-compose.ingestion.yml) | Topic `taxi-events` mà Spark có thể đọc |
-| **2.1** Chuẩn hóa thời gian và dữ liệu | Mạnh, thống nhất với Chính và Bảo | [Quy tắc pickup](src/nyc_taxi_pipeline/processing/pickup.py) | Quy tắc hợp lệ và phân cửa sổ dùng chung cho batch và stream |
-| **2.2** Tính mức lịch sử | Mạnh | [Điểm chạy batch](scripts/run_batch.py) · [Spark Batch](src/nyc_taxi_pipeline/pipelines/historical_baseline.py) | Mức lịch sử theo vùng, thứ và khung giờ, kèm số cửa sổ tham chiếu |
-| **2.3** Đếm chuyến phát lại | Mạnh | [Điểm chạy stream](scripts/run_stream.py) · [Spark Structured Streaming](src/nyc_taxi_pipeline/pipelines/streaming_counts.py) | Tổng chuyến lũy kế theo phiên, vùng và cửa sổ |
-| **3.1** Tạo bảng | Bảo | [Schema PostgreSQL](database/schema.sql) | Ba bảng và khóa để nạp đúng từng loại dữ liệu |
-| **3.2** Nạp và cập nhật kết quả | Bảo, phối hợp Mạnh ở phần ghi stream | [Zone Lookup](database/load/zone_lookup.sql) · [Mức lịch sử](database/load/baseline.sql) · [Số đếm stream](database/load/replay_counts.sql) | Ba bảng có dữ liệu để truy vấn |
-| **3.3** Truy vấn demo | Bảo | [Truy vấn so sánh](database/queries/compare_pickup_demand.sql) | Tên/mã vùng, số chuyến, mức lịch sử, số cửa sổ tham chiếu và % chênh lệch |
-| **4.1** Kiểm tra trên bộ mẫu | Cả nhóm | [Đặc tả bộ mẫu](data/fixtures/README.md) · [Ca nghiệm thu](tests/test_pipeline_contract.py) | Kết quả đối chiếu dự kiến tại từng điểm bàn giao |
-| **4.2** Chạy với dữ liệu TLC và bàn giao | Cả nhóm, nhóm trưởng tổng hợp | [Cấu hình demo](configs/demo.example.yaml) · [Báo cáo MVP](docs/mvp-report.md) | File tháng, truy vấn SQL, phạm vi, lệnh chạy, log và kết quả SQL thực tế khi triển khai |
+| Bước README | Hướng dẫn và bàn giao |
+| --- | --- |
+| 1.1 Lấy dữ liệu | [API và nguồn vùng](docs/guide/ingestion/01-api-source.md): JSON nguồn, lookup và ranh giới |
+| 1.2 Lưu HDFS | [HDFS/manifest](docs/guide/ingestion/02-hdfs-manifest.md): raw, Parquet và manifest ready |
+| 1.3 Tạo sự kiện | [Replay](docs/guide/ingestion/03-request-replay.md): yêu cầu kèm điểm đến và tọa độ ổn định |
+| 1.4 Kafka | [Publisher](docs/guide/ingestion/04-kafka-publisher.md): taxi-events và ack |
+| Sơ đồ: trả khách và archive | [Simulator](docs/guide/ingestion/05-dropoff-simulator.md), [HDFS archive](docs/guide/ingestion/06-event-archive.md) |
+| 2.1 Quy tắc chung | [Chuẩn hóa/router](docs/guide/pipeline/01-normalization-routing.md): kiểm tra, khử trùng, phân luồng |
+| 2.2 Batch | [Hai baseline](docs/guide/pipeline/02-historical-baselines.md), [gradient](docs/guide/pipeline/03-demand-gradients.md), [trung bình đón trong ngày](docs/guide/pipeline/07-daily-pickups.md), [tổng hợp cuối](docs/guide/pipeline/09-batch-summary.md) |
+| 2.3 Stream | [Cảnh báo](docs/guide/pipeline/04-demand-alerts.md), [lưu lượng/spike](docs/guide/pipeline/08-traffic-spikes.md), [ghép/vòng đời](docs/guide/pipeline/05-ride-matching.md), [hợp đồng API/client](docs/guide/pipeline/06-service-api.md) |
+| 3.1 Tạo bảng | [Schema PostgreSQL/PostGIS](docs/guide/warehouse/01-schema.md) |
+| 3.2 Nạp và ghi dữ liệu | [Lookup](docs/guide/warehouse/02-zone-lookup.md), [công bố batch](docs/guide/warehouse/03-batch-publication.md), [số đếm](docs/guide/warehouse/04-demand-storage.md), [giao dịch ghép](docs/guide/warehouse/05-matching-transactions.md), [lịch/retention](docs/guide/warehouse/06-schedule-retention.md) |
+| 3.3 Đối soát | [SQL đối soát](docs/guide/warehouse/07-reconciliation.md) |
+| 4.1 Bộ mẫu — cả nhóm tự làm | [Fixture](data/fixtures/README.md), [khung test](tests/test_pipeline_contract.py) |
+| 4.2 Chạy và bàn giao — cả nhóm tự làm | [Báo cáo](docs/mvp-report.md), [cấu hình](configs/demo.example.yaml) |
 
-## Luồng bàn giao và thứ tự tích hợp dự kiến
+## Nguyên tắc tích hợp
 
-```text
-TLC Parquet → HDFS nguồn → DuckDB lọc/COPY → HDFS (Parquet + provenance/manifest)
-  ├─ history (Parquet) → Spark Batch → bảng mức lịch sử
-  └─ replay (Parquet) → Python Replay → Kafka taxi-events → Spark Stream → bảng số chuyến
-Taxi Zone Lookup (CSV) → HDFS, mục zone_lookup trong manifest → bảng tra tên khu vực
-Ba bảng trong PostgreSQL → SQL so sánh theo khu vực và khung 15 phút
-```
+Chính công bố history/replay trên HDFS; Bảo chuẩn bị schema và repository; Mạnh đọc history, tính và công bố batch ban đầu. Stream giữ cặp baseline lúc mở cửa sổ, cảnh báo khi vừa vượt ngưỡng và chờ Kafka ack trước ghi tổng tương ứng. Chốt cửa sổ chỉ tạo đầu vào cho batch định kỳ, không tự đổi baseline bằng SQL. Gradient cung cấp ngữ cảnh, không là điều kiện cảnh báo riêng.
 
-1. Nhóm trưởng chốt file tháng TLC, kỳ `history` và kỳ `replay`. Chính, Mạnh và Bảo cùng thống nhất schema Parquet, JSON sự kiện, bảng kết quả và vị trí bàn giao trong cấu hình demo.
-2. Chuẩn bị HDFS dùng chung, Kafka và ba bảng PostgreSQL. Chính dùng DuckDB đọc TLC, lưu nguồn/provenance/Parquet trên HDFS, công bố manifest HDFS và bàn giao mục `zone_lookup` cho Bảo nạp.
-3. Mạnh chạy batch từ các mục `history` đã sẵn sàng. Bảo nạp kết quả của kỳ lịch sử đã chọn.
-4. Mạnh khởi động stream theo mã phiên đã chốt, sau đó Chính phát tập `replay`. Mạnh chuyển tổng số chuyến của mỗi cửa sổ vào kho theo quy tắc nạp của Bảo.
-5. Bảo truy vấn theo mã phiên và cửa sổ cần xem. Cả nhóm đối chiếu trên bộ mẫu trước, rồi chạy lại từ TLC và ghi riêng hai kết quả.
+Nhánh ghép dùng hai bán kính 500 m, kiểm tra đồng ý đã có từ phía người dùng và chốt qua giao dịch kho. Publisher phát một pickup mỗi trip sau commit; simulator phát trả khách theo từng request từ lịch bền vững; archive lưu raw/journal lên HDFS trước khi kho được phép dọn chi tiết. Thời gian trao đổi có múi giờ, nghiệp vụ theo America/New_York.
 
-Ba người có thể chuẩn bị phần mình song song từ cùng một bộ mẫu và các đầu ra kỳ vọng. Các mốc trao đổi và lưu kho có múi giờ. Thứ và khung giờ nghiệp vụ tính theo `America/New_York`. Cửa sổ lấy mốc đầu và loại mốc cuối.
+Mục 4.1–4.2 và các file fixture/test/báo cáo của cả nhóm giữ nguyên trong lần tổ chức này; chúng còn mô tả thiết kế cũ và cần nhóm cập nhật trước nghiệm thu. Không dùng chúng làm hợp đồng mới thay cho guide.
 
-Theo yêu cầu cập nhật của nhóm trưởng, mặc định dùng DuckDB/TLC, không cần token Socrata. Xem [cách chạy](docs/ingestion.md), [nghiệm thu dữ liệu lớn](docs/duckdb-validation.md) và [phân công đã cập nhật](docs/guide/giao-viec-demo-taxi.md). API cũ vẫn có trong `configs/api-demo.example.yaml` để tra cứu lịch sử; không tự fallback giữa hai nguồn.
+## Các nhịp xử lý và đối soát
+
+- Ba batch chạy mỗi 15 phút; sau cả ba mới tổng hợp/công bố batch view. Batch 3 lấy trung bình các khung có lượt đón trong ngày hiện tại, không lấy cùng slot qua nhiều ngày.
+- Stream kiểm tra spike mỗi 15 giây: số request mới > k lần khoảng trước và > M. Cùng phiên–zone–phút thì upsert tổng vào cùng bản ghi, không cộng lại khi retry.
+- Serving view giữ 60 phút gần nhất; PostgreSQL giữ toàn bộ bản ghi phút. Bucket phút chứa số phát sinh, không phải tổng rolling.
+- Batch đọc HDFS sự kiện đặt/đón/trả thực tế, stream tính ngay trên cùng sự kiện. Hai view 15 phút giữ riêng, đối soát sau khi đủ dữ liệu và đã chốt. Ví dụ 5 request, một cặp ghép, ba solo, tất cả trả trong khung: 5 đặt — 4 trip đón — 5 khách trả — 4 trip hoàn tất.
+
+Xem [hợp đồng](docs/guide/contracts.md) để thống nhất khóa, zone, event time, độ phủ và phiên bản công bố.

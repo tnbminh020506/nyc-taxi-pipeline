@@ -11,8 +11,8 @@ __pycache__/
 /data/processed/
 /checkpoints/
 /output/
-/data/*manifest.json
 /configs/*.local.yaml
+/data/*manifest.json
 manifest.local.json
 imported.local.yaml
 /data/hdfs-publication.local.json

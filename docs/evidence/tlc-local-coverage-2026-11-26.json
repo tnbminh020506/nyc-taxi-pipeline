@@ -1,0 +1,141 @@
+{
+  "started_at": "2026-11-26T13:30:58.498141+00:00",
+  "source_mode": "existing_local_files",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.10.11",
+  "duckdb": "1.5.6",
+  "years": [
+    2025
+  ],
+  "months": [
+    1,
+    2
+  ],
+  "checks": [
+    {
+      "month": "2025-01",
+      "source": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-source-cache\\yellow_tripdata_2025-01.parquet",
+      "status": "present",
+      "source_rows": 3475226,
+      "expected_month_rows": 3475204,
+      "other_month_or_invalid_rows": 22,
+      "first_pickup_in_month": "2025-01-01 00:00:00",
+      "last_pickup_in_month": "2025-01-31 23:59:59",
+      "timestamp_months": [
+        {
+          "pickup_month": "2024-12",
+          "row_count": 21,
+          "first_pickup": "2024-12-31 20:47:55",
+          "last_pickup": "2024-12-31 23:56:19"
+        },
+        {
+          "pickup_month": "2025-01",
+          "row_count": 3475204,
+          "first_pickup": "2025-01-01 00:00:00",
+          "last_pickup": "2025-01-31 23:59:59"
+        },
+        {
+          "pickup_month": "2025-02",
+          "row_count": 1,
+          "first_pickup": "2025-02-01 00:00:44",
+          "last_pickup": "2025-02-01 00:00:44"
+        }
+      ],
+      "samples": [
+        {
+          "pickup_at": "2025-01-01 00:18:38",
+          "dropoff_at": "2025-01-01 00:26:59",
+          "pickup_zone_id": 229,
+          "dropoff_zone_id": 237
+        },
+        {
+          "pickup_at": "2025-01-01 00:32:40",
+          "dropoff_at": "2025-01-01 00:35:13",
+          "pickup_zone_id": 236,
+          "dropoff_zone_id": 237
+        }
+      ],
+      "elapsed_seconds": 0.39
+    },
+    {
+      "month": "2025-02",
+      "source": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-source-cache\\yellow_tripdata_2025-02.parquet",
+      "status": "present",
+      "source_rows": 3577543,
+      "expected_month_rows": 3577512,
+      "other_month_or_invalid_rows": 31,
+      "first_pickup_in_month": "2025-02-01 00:00:00",
+      "last_pickup_in_month": "2025-02-28 23:59:59",
+      "timestamp_months": [
+        {
+          "pickup_month": "2025-01",
+          "row_count": 30,
+          "first_pickup": "2025-01-31 22:22:53",
+          "last_pickup": "2025-01-31 23:59:03"
+        },
+        {
+          "pickup_month": "2025-02",
+          "row_count": 3577512,
+          "first_pickup": "2025-02-01 00:00:00",
+          "last_pickup": "2025-02-28 23:59:59"
+        },
+        {
+          "pickup_month": "2025-03",
+          "row_count": 1,
+          "first_pickup": "2025-03-01 00:06:32",
+          "last_pickup": "2025-03-01 00:06:32"
+        }
+      ],
+      "samples": [
+        {
+          "pickup_at": "2025-02-01 00:12:18",
+          "dropoff_at": "2025-02-01 00:32:33",
+          "pickup_zone_id": 246,
+          "dropoff_zone_id": 79
+        },
+        {
+          "pickup_at": "2025-02-01 00:40:04",
+          "dropoff_at": "2025-02-01 00:49:15",
+          "pickup_zone_id": 114,
+          "dropoff_zone_id": 79
+        }
+      ],
+      "elapsed_seconds": 0.391
+    }
+  ],
+  "dataset_files_written": 0,
+  "hdfs_publication_performed": false,
+  "timestamp_basis": "TLC source wall time in America/New_York",
+  "method": "scan pickup timestamps, group by actual year/month, then read sample records",
+  "finished_at": "2026-11-26T13:30:59.348197+00:00",
+  "elapsed_seconds": 0.844,
+  "requested_month_count": 2,
+  "present_month_count": 2,
+  "total_source_rows": 7052769,
+  "total_expected_month_rows": 7052716,
+  "success": true,
+  "file_inventory": [
+    {
+      "file": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-source-cache\\yellow_tripdata_2025-01.parquet",
+      "bytes": 59158238
+    },
+    {
+      "file": "D:\\BigData\\nyc-taxi-pipeline\\output\\tlc-source-cache\\yellow_tripdata_2025-02.parquet",
+      "bytes": 60343086
+    }
+  ],
+  "service_probes": {
+    "9870": {
+      "host": "127.0.0.1",
+      "connect_errno": 10035
+    },
+    "8020": {
+      "host": "127.0.0.1",
+      "connect_errno": 10035
+    },
+    "9092": {
+      "host": "127.0.0.1",
+      "connect_errno": 10035
+    }
+  }
+}

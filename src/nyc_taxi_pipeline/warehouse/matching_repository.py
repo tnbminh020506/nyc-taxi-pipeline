@@ -1,0 +1,2 @@
+# TODO: 3.2 · Giao dịch điều phối và pickup outbox.
+# Guide: docs/guide/warehouse/05-matching-transactions.md

@@ -186,3 +186,7 @@ def run_replay(config, replay_id=None, dry_run=False, output=None, create_topic=
         stats["mode"] = "kafka"
     LOG.info("replay_id=%s summary=%s", replay_id, json.dumps(stats))
     return stats
+
+
+# The v2 event path is explicitly selected by its pinned HDFS manifest.
+from .replay_v2 import iter_requests, publish_replay
