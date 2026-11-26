@@ -105,3 +105,5 @@ Kết quả cục bộ ngày 26/11/2026.
 | Quét hai cache local | 2/2 tháng có bản ghi đúng kỳ, 7.052.769 dòng tổng |
 
 Workflow [Ingestion checks](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/workflows/ingestion.yml) chạy khi push nhánh `demo/ingestion`, bao gồm Windows/Ubuntu, Kafka và HDFS thật trên CI. Các job HDFS/Kafka hiện dùng kịch bản v1 đã có; các hợp đồng v2 được kiểm tra bằng bộ standalone.
+
+Lượt [CI 45830709274](https://github.com/tnbminh020506/nyc-taxi-pipeline/actions/runs/45830709274) nghiệm thu commit `6505ab7` đã **success**. Cả bốn job Windows, Ubuntu, Kafka roundtrip và HDFS roundtrip đều đạt. HDFS chạy kịch bản một triệu dòng tổng hợp và fault-test. Job tải/materialize TLC khối lượng lớn được skip theo cấu hình của push; bằng chứng nguồn cloud 12 tháng là lượt quét trực tiếp được lưu trong JSON ngày 26/11 ở trên.
